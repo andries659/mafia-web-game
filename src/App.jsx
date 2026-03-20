@@ -23,7 +23,6 @@ const GlobalStyles = () => (
       background: var(--noir-black); color: var(--text-bright);
       font-family: 'Crimson Pro', Georgia, serif; min-height: 100vh;
       -webkit-font-smoothing: antialiased; overflow-x: hidden;
-      cursor: none;
     }
     body::before {
       content: ''; position: fixed; inset: 0;
@@ -127,15 +126,7 @@ const GlobalStyles = () => (
       from { transform: translateY(-60px); opacity: 0; }
       to   { transform: translateY(0); opacity: 1; }
     }
-    @keyframes cursorPulse {
-      0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 1; }
-      50%      { transform: translate(-50%,-50%) scale(1.4); opacity: 0.6; }
-    }
-    @keyframes cursorRing {
-      0%,100% { transform: translate(-50%,-50%) scale(1); opacity: 0.4; }
-      50%      { transform: translate(-50%,-50%) scale(1.2); opacity: 0.2; }
-    }
-    @keyframes smokeRise {
+    @keyframes footerFade {
       0%   { transform: translateY(0) scale(1); opacity: 0.15; filter: blur(8px); }
       100% { transform: translateY(-80px) scale(2.5); opacity: 0; filter: blur(20px); }
     }
@@ -166,7 +157,7 @@ const GlobalStyles = () => (
     .btn-blood {
       background:var(--blood); color:white; border:1px solid rgba(255,255,255,0.1); border-radius:10px;
       font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase;
-      cursor:none; transition:all 0.2s; box-shadow:0 4px 24px var(--blood-glow);
+      cursor:pointer; transition:all 0.2s; box-shadow:0 4px 24px var(--blood-glow);
       position: relative; overflow: hidden;
     }
     .btn-blood::after {
@@ -180,13 +171,13 @@ const GlobalStyles = () => (
     .btn-ghost {
       background:transparent; color:var(--text-mid); border:1px solid var(--noir-border); border-radius:10px;
       font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.15em; text-transform:uppercase;
-      cursor:none; transition:all 0.2s;
+      cursor:pointer; transition:all 0.2s;
     }
     .btn-ghost:hover { border-color:var(--noir-border-hover); color:var(--text-bright); }
     .btn-discord {
       background:#5865F2; color:white; border:1px solid rgba(255,255,255,0.12); border-radius:12px;
       font-family:'DM Mono',monospace; font-size:12px; letter-spacing:0.12em; text-transform:uppercase;
-      cursor:none; transition:all 0.25s; box-shadow:0 4px 24px rgba(88,101,242,0.4);
+      cursor:pointer; transition:all 0.25s; box-shadow:0 4px 24px rgba(88,101,242,0.4);
       display:flex; align-items:center; justify-content:center; gap:12px;
       position: relative; overflow: hidden;
     }
@@ -201,9 +192,9 @@ const GlobalStyles = () => (
     .screenshots-track {
       display:flex; gap:20px; overflow-x:auto; padding:12px 24px 24px;
       scrollbar-width:thin; scrollbar-color:rgba(192,20,28,0.4) transparent;
-      cursor:none; user-select:none;
+      cursor:grab; user-select:none;
     }
-    .screenshots-track:active { cursor:none; }
+    .screenshots-track:active { cursor:grabbing; }
     .screenshots-track::-webkit-scrollbar { height:4px; }
     .screenshots-track::-webkit-scrollbar-track { background:transparent; }
     .screenshots-track::-webkit-scrollbar-thumb { background:rgba(192,20,28,0.4); border-radius:2px; }
@@ -247,7 +238,7 @@ const GlobalStyles = () => (
       font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase;
       border:1px solid; white-space:nowrap;
       transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
-      cursor: none;
+      cursor: default;
     }
     .role-pill:hover {
       transform: translateY(-3px) scale(1.05);
@@ -271,70 +262,8 @@ const GlobalStyles = () => (
     @media (max-width:768px)  { .hide-mobile  { display:none !important; } .screenshot-frame { width:270px; } }
     @media (min-width:769px)  { .hide-desktop { display:none !important; } }
 
-    /* Custom cursor */
-    .cursor-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: var(--blood); position: fixed; pointer-events: none;
-      z-index: 99999; transform: translate(-50%, -50%);
-      transition: transform 0.1s, background 0.2s, width 0.2s, height 0.2s;
-      animation: cursorPulse 2s ease-in-out infinite;
-    }
-    .cursor-ring {
-      width: 28px; height: 28px; border-radius: 50%;
-      border: 1px solid rgba(192,20,28,0.5);
-      position: fixed; pointer-events: none; z-index: 99998;
-      transform: translate(-50%, -50%);
-      transition: left 0.12s ease-out, top 0.12s ease-out, width 0.2s, height 0.2s, border-color 0.2s;
-      animation: cursorRing 2s ease-in-out infinite;
-    }
-    .cursor-dot.hovering { width: 12px; height: 12px; background: white; }
-    .cursor-ring.hovering { width: 44px; height: 44px; border-color: rgba(192,20,28,0.8); }
   `}</style>
 );
-
-// ─── Custom Cursor ─────────────────────────────────────────────────────────────
-function CustomCursor() {
-  const dotRef  = useRef(null);
-  const ringRef = useRef(null);
-  const pos     = useRef({ x: 0, y: 0 });
-  const ring    = useRef({ x: 0, y: 0 });
-  const raf     = useRef(null);
-  const hovering = useRef(false);
-
-  useEffect(() => {
-    const onMove = (e) => {
-      pos.current = { x: e.clientX, y: e.clientY };
-      if (dotRef.current) {
-        dotRef.current.style.left = e.clientX + 'px';
-        dotRef.current.style.top  = e.clientY + 'px';
-      }
-      const el = document.elementFromPoint(e.clientX, e.clientY);
-      const isHover = el && (el.closest('button') || el.closest('a') || el.closest('.role-pill') || el.closest('.screenshot-frame') || el.closest('.feature-card'));
-      hovering.current = !!isHover;
-      dotRef.current?.classList.toggle('hovering', !!isHover);
-      ringRef.current?.classList.toggle('hovering', !!isHover);
-    };
-    const animate = () => {
-      ring.current.x += (pos.current.x - ring.current.x) * 0.12;
-      ring.current.y += (pos.current.y - ring.current.y) * 0.12;
-      if (ringRef.current) {
-        ringRef.current.style.left = ring.current.x + 'px';
-        ringRef.current.style.top  = ring.current.y + 'px';
-      }
-      raf.current = requestAnimationFrame(animate);
-    };
-    window.addEventListener('mousemove', onMove);
-    raf.current = requestAnimationFrame(animate);
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(raf.current); };
-  }, []);
-
-  return (
-    <>
-      <div ref={dotRef}  className="cursor-dot"  style={{ position:'fixed', pointerEvents:'none', zIndex:99999 }} />
-      <div ref={ringRef} className="cursor-ring" style={{ position:'fixed', pointerEvents:'none', zIndex:99998 }} />
-    </>
-  );
-}
 
 // ─── Scanline overlay ─────────────────────────────────────────────────────────
 function Scanline() {
@@ -615,7 +544,6 @@ function LandingPage({ onEnter }) {
   return (
     <div style={{ minHeight: '100vh', position: 'relative', overflowX: 'hidden' }}>
       <GlobalStyles />
-      <CustomCursor />
       <Scanline />
       <AmbientParticles />
 
@@ -924,12 +852,11 @@ function LoginPage({ onBack }) {
   return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', position:'relative', overflow:'hidden' }}>
       <GlobalStyles />
-      <CustomCursor />
       <AmbientParticles />
       <div style={{ position:'fixed', inset:0, pointerEvents:'none', background:'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(88,101,242,0.06) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 20% 80%, rgba(192,20,28,0.05) 0%, transparent 60%)' }} />
 
       <nav style={{ padding:'20px 28px', display:'flex', alignItems:'center', gap:10, position:'relative', zIndex:10, animation:'navSlide 0.6s ease both' }}>
-        <button onClick={onBack} style={{ display:'flex', alignItems:'center', gap:8, background:'transparent', border:'none', cursor:'none', color:'var(--text-dim)', fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', transition:'color 0.2s', padding:0 }} onMouseEnter={e => e.currentTarget.style.color='var(--text-mid)'} onMouseLeave={e => e.currentTarget.style.color='var(--text-dim)'}>
+        <button onClick={onBack} style={{ display:'flex', alignItems:'center', gap:8, background:'transparent', border:'none', cursor:'pointer', color:'var(--text-dim)', fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', transition:'color 0.2s', padding:0 }} onMouseEnter={e => e.currentTarget.style.color='var(--text-mid)'} onMouseLeave={e => e.currentTarget.style.color='var(--text-dim)'}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
           Back
         </button>
@@ -1004,7 +931,6 @@ function DiscordCallback({ onSuccess }) {
   return (
     <div style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--noir-black)', flexDirection:'column', gap:16 }}>
       <GlobalStyles />
-      <CustomCursor />
       {status === 'loading' ? (
         <>
           <div style={{ width:40, height:40, borderRadius:'50%', border:'2px solid rgba(88,101,242,0.2)', borderTop:'2px solid #5865F2', animation:'spin 0.8s linear infinite' }} />
