@@ -1077,7 +1077,7 @@ function DayPhase({ game, me, user }) {
   );
 }
 
-function GameOver({ game, me, onLeave }) {
+function GameOver({ game, me, user, onLeave }) {
   const winner=game.winner;
   const isMafiaWin=winner==='mafia', isJesterWin=winner==='jester', isArsonistWin=winner==='arsonist';
   const myTeamWon=isJesterWin?me.role==='jester':isArsonistWin?me.role==='arsonist':isMafiaWin?isMafiaRole(me.role):!isMafiaRole(me.role)&&me.role!=='arsonist'&&me.role!=='jester';
