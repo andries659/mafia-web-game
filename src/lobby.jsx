@@ -257,7 +257,7 @@ export default function MafiaGame() {
         actions:{}, guesses:{}, messages:[], mafiaMessages:[], wills:{}, dawnSeen:{}, logs:[], investigations:{}
       });
       setGameCode(code);
-    } catch (err) { setError("Failed to create game."); }
+    } catch (err) { console.error("Create game error:", err); setError("Failed to create game: " + (err?.message || err)); }
   };
 
   const handleJoinGame = async (inputCode) => {
@@ -270,7 +270,7 @@ export default function MafiaGame() {
       if (Object.keys(gameSnap.data().players || {}).length >= 40) return setError("This game is full.");
       await setDoc(getGameRef(code), { players: { [user.uid]: { id:user.uid, name:playerName, avatarId:selectedAvatar, role:'unassigned', isAlive:true, hasUsedAbility:false } } }, { merge: true });
       setGameCode(code);
-    } catch (err) { setError("Failed to join game."); }
+    } catch (err) { console.error("Join game error:", err); setError("Failed to join game: " + (err?.message || err)); }
   };
 
   return (
