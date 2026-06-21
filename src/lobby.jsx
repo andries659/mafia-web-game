@@ -254,7 +254,7 @@ export default function MafiaGame() {
         code, hostId: user.uid, status: 'lobby', phaseNum: 1, winner: null,
         settings: { mafia:0,godfather:0,framer:0,kidnapper:0,janitor:0,doctor:0,detective:0,sheriff:0,vigilante:0,bodyguard:0,jester:0,escort:0,mayor:0,tracker:0,lookout:0,veteran:0,blackmailer:0,spy:0,arsonist:0,medium:0 },
         players: { [user.uid]: { id:user.uid, name:playerName, avatarId:selectedAvatar, role:'unassigned', isAlive:true, hasUsedAbility:false } },
-        actions:{}, guesses:{}, messages:[], mafiaMessages:[], wills:{}, dawnSeen:{}, logs:[], investigations:{}
+        actions:{}, guesses:{}, messages:[], mafiaMessages:[], wills:{}, dawnSeen:{}, logs:[], investigations:{}, lobbyChatMessages:[]
       });
       setGameCode(code);
     } catch (err) { console.error("Create game error:", err); setError("Failed to create game: " + (err?.message || err)); }
@@ -607,7 +607,7 @@ function GameRoom({ user, gameCode, onLeave }) {
 
   const renderPhase = () => {
     switch (game.status) {
-      case 'lobby':       return <Lobby game={game} isHost={isHost} user={user} />;
+      case 'lobby':       return <Lobby game={game} isHost={isHost} user={user} onLeave={onLeave} />;
       case 'role_reveal': return <RoleReveal game={game} me={me} user={user} />;
       case 'night':       return <NightPhase key={`night-${game.phaseNum}`} game={game} me={me} user={user} />;
       case 'day':         return <DayPhase key={`day-${game.phaseNum}`} game={game} me={me} user={user} />;
@@ -695,7 +695,61 @@ function GameRoom({ user, gameCode, onLeave }) {
 // ─── Lobby, RoleReveal, NightPhase, DayPhase, GameOver ───────────────────────
 // (unchanged from previous version — only pasting the ones that existed before)
 
-function Lobby({ game, isHost, user }) {
+function LobbyChatBox({ game, user }) {
+  const me = game.players[user.uid];
+  const [msg, setMsg] = useState('');
+  const scrollRef = useRef(null);
+  const messages = game.lobbyChatMessages || [];
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages.length]);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!msg.trim() || !me) return;
+    const messageObj = { senderId: user.uid, senderName: me.name, senderAvatarId: me.avatarId, text: msg.trim(), timestamp: Date.now() };
+    setMsg('');
+    await updateDoc(getGameRef(game.code), { lobbyChatMessages: arrayUnion(messageObj) });
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', minHeight:0, flex:1 }}>
+      <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--noir-border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+        <MessageSquare size={11} color="var(--text-dim)"/>
+        <span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)' }}>Lobby Chat</span>
+      </div>
+      <div ref={scrollRef} className="chat-scroll-area" style={{ flex:1, minHeight:0, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+        {messages.length === 0 && (
+          <p style={{ textAlign:'center', color:'var(--text-dim)', fontSize:13, fontStyle:'italic', marginTop:16 }}>Silence fills the room…</p>
+        )}
+        {messages.map((m, i) => {
+          const isMe = m.senderId === user.uid;
+          return (
+            <div key={i} style={{ display:'flex', flexDirection:'row', alignItems:'flex-end', gap:6, justifyContent: isMe ? 'flex-end' : 'flex-start', animation: i >= messages.length - 3 ? `${isMe?'bubbleInRight':'bubbleInLeft'} 0.25s ease both` : 'none' }}>
+              {!isMe && <Avatar avatarId={m.senderAvatarId} size={26} style={{ flexShrink:0, marginBottom:2 }}/>}
+              <div style={{ display:'flex', flexDirection:'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth:'78%' }}>
+                <span style={{ fontFamily:'DM Mono', fontSize:9, letterSpacing:'0.05em', color:'var(--text-dim)', marginBottom:3 }}>{m.senderName}</span>
+                <div className={isMe ? 'chat-me' : 'chat-other'} style={{ padding:'7px 12px', borderRadius:10, fontSize:14, color:'var(--text-bright)', wordBreak:'break-word', lineHeight:1.5 }}>{m.text}</div>
+              </div>
+              {isMe && <Avatar avatarId={m.senderAvatarId} size={26} style={{ flexShrink:0, marginBottom:2 }}/>}
+            </div>
+          );
+        })}
+      </div>
+      <form onSubmit={handleSend} style={{ padding:'10px 12px', borderTop:'1px solid var(--noir-border)', display:'flex', gap:8, flexShrink:0 }}>
+        <input type="text" value={msg} onChange={e => setMsg(e.target.value)}
+          placeholder="Say something…" className="noir-input"
+          style={{ flex:1, padding:'8px 12px', borderRadius:8, fontSize:14 }}
+        />
+        <button type="submit" disabled={!msg.trim()} style={{ padding:'8px 14px', borderRadius:8, background:msg.trim()?'var(--blood)':'rgba(255,255,255,0.04)', border:`1px solid ${msg.trim()?'transparent':'var(--noir-border)'}`, color:msg.trim()?'white':'var(--text-dim)', cursor:msg.trim()?'pointer':'not-allowed', transition:'all 0.15s', fontSize:13 }}>↑</button>
+      </form>
+    </div>
+  );
+}
+
+function Lobby({ game, isHost, user, onLeave }) {
   const playersList = Object.values(game.players);
   const [openCategory, setOpenCategory] = useState(null);
   const [visiblePlayers, setVisiblePlayers] = useState(new Set());
@@ -715,7 +769,7 @@ function Lobby({ game, isHost, user }) {
     roles.sort(()=>Math.random()-0.5);
     let updatedPlayers={...game.players};
     playersList.forEach((p,idx) => { updatedPlayers[p.id].role=roles[idx]; });
-    await updateDoc(getGameRef(game.code), { status:'role_reveal', players:updatedPlayers });
+    await updateDoc(getGameRef(game.code), { status:'role_reveal', players:updatedPlayers, lobbyChatMessages:[], messages:[] });
   };
 
   const roleCategories = [
@@ -728,29 +782,39 @@ function Lobby({ game, isHost, user }) {
   ];
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:20, maxWidth:960, margin:'0 auto' }}>
-      <div style={{ textAlign:'center', padding:'20px 0', animation:'fadeUp 0.5s ease both' }}>
-        <h2 className="font-display" style={{ fontSize:32, color:'var(--text-bright)', fontWeight:700, marginBottom:6 }}>Gathering</h2>
-        <p style={{ color:'var(--text-dim)', fontStyle:'italic' }}>Waiting for players to assemble</p>
+    <div style={{ display:'flex', flexDirection:'column', gap:20, maxWidth:1100, margin:'0 auto' }}>
+      {/* Header row */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 0', animation:'fadeUp 0.5s ease both' }}>
+        <div>
+          <h2 className="font-display" style={{ fontSize:32, color:'var(--text-bright)', fontWeight:700, marginBottom:4 }}>Gathering</h2>
+          <p style={{ color:'var(--text-dim)', fontStyle:'italic' }}>Waiting for players to assemble</p>
+        </div>
+        <button onClick={onLeave} className="btn-ghost" style={{ padding:'9px 20px', borderRadius:9, fontSize:13 }}>Leave Room</button>
       </div>
-      <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
-        <div className="glass-card" style={{ flex:1, minWidth:280, padding:24, animation:'fadeUp 0.5s ease 0.1s both' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:20 }}>
+
+      {/* Three-column layout: Players | Role Setup | Chat */}
+      <div style={{ display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-start' }}>
+
+        {/* Players list */}
+        <div className="glass-card" style={{ flex:'1 1 220px', minWidth:200, padding:20, animation:'fadeUp 0.5s ease 0.1s both' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
             <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', display:'flex', alignItems:'center', gap:8 }}><Users size={12}/> Players</h3>
             <span style={{ fontFamily:'DM Mono', fontSize:11, color:'var(--text-dim)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--noir-border)', borderRadius:6, padding:'2px 10px' }}>{playersList.length} joined</span>
           </div>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(140px, 1fr))', gap:8 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {playersList.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.03)', border:'1px solid var(--noir-border)', borderRadius:10, padding:'10px 14px', opacity:visiblePlayers.has(p.id)?1:0, transform:visiblePlayers.has(p.id)?'translateX(0)':'translateX(-12px)', transition:'opacity 0.35s ease, transform 0.35s ease' }}>
-                <Avatar avatarId={p.avatarId} size={32}/>
-                <span style={{ fontSize:15, color:'var(--text-bright)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{p.name}</span>
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.03)', border:'1px solid var(--noir-border)', borderRadius:10, padding:'9px 12px', opacity:visiblePlayers.has(p.id)?1:0, transform:visiblePlayers.has(p.id)?'translateX(0)':'translateX(-12px)', transition:'opacity 0.35s ease, transform 0.35s ease' }}>
+                <Avatar avatarId={p.avatarId} size={30}/>
+                <span style={{ fontSize:14, color:'var(--text-bright)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{p.name}</span>
                 {p.id===game.hostId&&<div style={{ animation:'skullIconFloat 4s ease-in-out infinite' }}><Crown size={11} color="var(--gold)" style={{ flexShrink:0 }}/></div>}
               </div>
             ))}
           </div>
         </div>
-        <div className="glass-card" style={{ width:'100%', flexBasis:280, flexShrink:0, padding:24, animation:'fadeUp 0.5s ease 0.2s both' }}>
-          <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:16 }}>Role Setup</h3>
+
+        {/* Role setup */}
+        <div className="glass-card" style={{ flex:'1 1 260px', minWidth:240, padding:20, animation:'fadeUp 0.5s ease 0.2s both' }}>
+          <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:14 }}>Role Setup</h3>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {roleCategories.map(cat => {
               const isOpen=openCategory===cat.id;
@@ -782,9 +846,18 @@ function Lobby({ game, isHost, user }) {
               );
             })}
           </div>
-          <div style={{ height:1, background:'var(--noir-border)', margin:'20px 0' }}/>
-          {isHost?(<button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'13px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>):(<div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Awaiting host</span></div>)}
+          <div style={{ height:1, background:'var(--noir-border)', margin:'16px 0' }}/>
+          {isHost
+            ? <button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'13px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>
+            : <div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Awaiting host</span></div>
+          }
         </div>
+
+        {/* Lobby chat */}
+        <div className="glass-card" style={{ flex:'1 1 260px', minWidth:240, padding:0, overflow:'hidden', display:'flex', flexDirection:'column', minHeight:380, animation:'fadeUp 0.5s ease 0.3s both' }}>
+          <LobbyChatBox game={game} user={user} />
+        </div>
+
       </div>
     </div>
   );
