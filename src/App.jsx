@@ -611,7 +611,7 @@ function LandingPage({ onEnter }) {
             padding:'5px 16px', display:'inline-block', marginBottom:32,
             animation:'borderGlow 3s ease-in-out infinite, textFlicker 15s ease infinite',
           }}>
-            The Night Has Begun
+            Lie. Deceive. Survive.
           </span>
         </div>
 
@@ -627,7 +627,7 @@ function LandingPage({ onEnter }) {
         </h1>
 
         <p className="font-body fade-up" style={{ fontSize:'clamp(17px, 2.5vw, 22px)', color:'var(--text-mid)', maxWidth:560, lineHeight:1.6, fontStyle:'italic', marginBottom:48, animationDelay:'200ms', animation:'fadeUp 0.7s ease 200ms both, textFlicker 20s ease 5s infinite' }}>
-          A real-time social deduction game where the Mafia hides in plain sight. Deduce, deceive, and survive — or die trying.
+          A real-time social deduction game for 3–40 players. Find the Mafia before they find you — or hide in plain sight and take the town apart.
         </p>
 
         <div className="fade-up" style={{ display:'flex', gap:12, flexWrap:'wrap', justifyContent:'center', animationDelay:'280ms' }}>
@@ -715,8 +715,8 @@ function LandingPage({ onEnter }) {
         <div style={{ maxWidth:1100, margin:'0 auto', padding:'0 24px' }}>
           <div style={{ textAlign:'center', marginBottom:48 }}>
             <div className="section-divider reveal" />
-            <h2 className="font-display reveal" data-delay="100" style={{ fontSize:'clamp(28px, 4vw, 42px)', marginBottom:12 }}>The City Never Sleeps</h2>
-            <p className="font-body reveal" data-delay="180" style={{ color:'var(--text-mid)', fontSize:18, fontStyle:'italic' }}>Every night is a crime scene. Every day is a trial.</p>
+            <h2 className="font-display reveal" data-delay="100" style={{ fontSize:'clamp(28px, 4vw, 42px)', marginBottom:12 }}>See How It Plays</h2>
+            <p className="font-body reveal" data-delay="180" style={{ color:'var(--text-mid)', fontSize:18, fontStyle:'italic' }}>Every night a crime. Every day a reckoning.</p>
           </div>
         </div>
         <div ref={trackRef} className="screenshots-track" onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}>
@@ -738,7 +738,7 @@ function LandingPage({ onEnter }) {
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div className="section-divider reveal" />
             <h2 className="font-display reveal" data-delay="80" style={{ fontSize:'clamp(28px, 4vw, 42px)', marginBottom:12 }}>How It Works</h2>
-            <p className="font-body reveal" data-delay="160" style={{ color:'var(--text-mid)', fontSize:18, fontStyle:'italic' }}>Simple to learn. Impossible to master.</p>
+            <p className="font-body reveal" data-delay="160" style={{ color:'var(--text-mid)', fontSize:18, fontStyle:'italic' }}>Learn in minutes. Lies take longer.</p>
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:2 }}>
             {[
@@ -775,7 +775,7 @@ function LandingPage({ onEnter }) {
         <div style={{ maxWidth:1100, margin:'0 auto' }}>
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div className="section-divider reveal" />
-            <h2 className="font-display reveal" data-delay="80" style={{ fontSize:'clamp(28px, 4vw, 42px)', marginBottom:12 }}>Built for the Table</h2>
+            <h2 className="font-display reveal" data-delay="80" style={{ fontSize:'clamp(28px, 4vw, 42px)', marginBottom:12 }}>Everything You Need to Lie</h2>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:16 }}>
             {features.map((f, i) => (
@@ -814,13 +814,13 @@ function LandingPage({ onEnter }) {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
             </div>
             <div style={{ position:'relative' }}>
-              <p style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.25em', textTransform:'uppercase', color:'var(--blood)', marginBottom:20, animation:'textFlicker 10s ease 2s infinite' }}>The City Awaits</p>
+              <p style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.25em', textTransform:'uppercase', color:'var(--blood)', marginBottom:20, animation:'textFlicker 10s ease 2s infinite' }}>One Room. No Rules.</p>
               <h2 className="font-display" style={{ fontSize:'clamp(28px, 4vw, 40px)', marginBottom:16, lineHeight:1.1 }}>
-                Are you the killer,<br /><span style={{ fontStyle:'italic', color:'var(--text-mid)' }}>or the detective?</span>
+                Pick your side,<br /><span style={{ fontStyle:'italic', color:'var(--text-mid)' }}>or don't show yours.</span>
               </h2>
-              <p className="font-body" style={{ color:'var(--text-mid)', fontSize:17, fontStyle:'italic', marginBottom:32, lineHeight:1.6 }}>Log in with Discord and join a game in seconds.</p>
+              <p className="font-body" style={{ color:'var(--text-mid)', fontSize:17, fontStyle:'italic', marginBottom:32, lineHeight:1.6 }}>Sign in with Discord and you're in a game within seconds.</p>
               <button className="btn-discord" style={{ width:'100%', padding:'15px 24px', fontSize:13, borderRadius:12 }} onClick={onEnter}>
-                <DiscordIcon size={22} />Sign In with Discord
+                <DiscordIcon size={22} />Join via Discord
               </button>
             </div>
           </div>
@@ -838,7 +838,7 @@ function LandingPage({ onEnter }) {
           <SkullIcon size={14} />
           <span className="font-display" style={{ fontSize:14, color:'var(--text-dim)' }}>Mafia</span>
         </div>
-        <p style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text-dim)', letterSpacing:'0.1em', animation:'textFlicker 18s ease 7s infinite' }}>THE CITY NEVER FORGETS</p>
+        <p style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text-dim)', letterSpacing:'0.1em', animation:'textFlicker 18s ease 7s infinite' }}>TRUST IS A WEAPON. USE IT WISELY.</p>
       </footer>
     </div>
   );
@@ -877,7 +877,7 @@ function LoginPage({ onBack }) {
             </div>
             <h1 className="font-display" style={{ fontSize:32, marginBottom:8, lineHeight:1.1 }}>Enter the City</h1>
             <p className="font-body" style={{ color:'var(--text-mid)', fontSize:17, fontStyle:'italic', lineHeight:1.6, marginBottom:36 }}>
-              Sign in with Discord to join a game. Your username becomes your alias — choose your enemies wisely.
+              Sign in with Discord to play. Your username becomes your alias in the game — choose your next move wisely.
             </p>
             <button className="btn-discord" style={{ width:'100%', padding:'15px 20px', fontSize:13, borderRadius:12, marginBottom:20, transform:hovering ? 'translateY(-2px)' : 'translateY(0)' }} onMouseEnter={() => setHovering(true)} onMouseLeave={() => setHovering(false)} onClick={handleDiscordLogin}>
               <DiscordIcon size={22} />Continue with Discord
@@ -897,7 +897,7 @@ function LoginPage({ onBack }) {
             </div>
           </div>
           <p style={{ textAlign:'center', fontFamily:'DM Mono', fontSize:9, color:'var(--text-dim)', letterSpacing:'0.08em', marginTop:20, lineHeight:1.7, animation:'fadeIn 1s ease 0.8s both' }}>
-            By signing in you agree to not cheat, not metagame,<br />and to accept your role with dignity.
+          By continuing you agree to play fair, accept your role,<br />and never reveal your hand until the bitter end.
           </p>
         </div>
       </div>

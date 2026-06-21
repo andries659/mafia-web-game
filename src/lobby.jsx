@@ -31,25 +31,43 @@ const MAFIA_ROLES = ['mafia', 'godfather', 'framer', 'kidnapper', 'janitor'];
 const isMafiaRole = (role) => MAFIA_ROLES.includes(role);
 
 const AVATARS = [
-  { id: 'fedora',    label: 'The Don',       svg: `<circle cx="50" cy="50" r="50" fill="#1a0a0a"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#c8a882"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#d4b896"/><ellipse cx="43" cy="53" rx="5" ry="6" fill="#8a6a4a"/><ellipse cx="57" cy="53" rx="5" ry="6" fill="#8a6a4a"/><circle cx="43" cy="53" r="3" fill="#1a1008"/><circle cx="57" cy="53" r="3" fill="#1a1008"/><path d="M44 64 Q50 69 56 64" stroke="#a07850" stroke-width="1.5" fill="none" stroke-linecap="round"/><rect x="28" y="30" width="44" height="8" rx="3" fill="#1a1008"/><path d="M22 38 Q50 32 78 38" stroke="#0d0806" stroke-width="6" stroke-linecap="round" fill="none"/><path d="M36 38 Q50 24 64 38" fill="#141010"/>` },
-  { id: 'veil',      label: 'The Ghost',     svg: `<circle cx="50" cy="50" r="50" fill="#0a0a1a"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#e8dcc8"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#f0e8d8"/><ellipse cx="43" cy="53" rx="4" ry="5" fill="#6a8aaa"/><ellipse cx="57" cy="53" rx="4" ry="5" fill="#6a8aaa"/><circle cx="43" cy="53" r="2.5" fill="#0a1018"/><circle cx="57" cy="53" r="2.5" fill="#0a1018"/><path d="M45 65 Q50 68 55 65" stroke="#c0a888" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M28 30 Q50 18 72 30 Q70 50 50 48 Q30 50 28 30Z" fill="#f0f0f0" opacity="0.9"/><path d="M30 40 Q50 55 70 40" stroke="rgba(180,180,200,0.3)" stroke-width="2" fill="none"/>` },
-  { id: 'detective', label: 'The Eye',       svg: `<circle cx="50" cy="50" r="50" fill="#0a100a"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#c8a872"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#d4b888"/><path d="M37 52 Q43 47 49 52" stroke="#604820" stroke-width="1.8" fill="none"/><path d="M51 52 Q57 47 63 52" stroke="#604820" stroke-width="1.8" fill="none"/><ellipse cx="43" cy="54" rx="4" ry="5" fill="#4a6830"/><ellipse cx="57" cy="54" rx="4" ry="5" fill="#4a6830"/><circle cx="43" cy="54" r="2.5" fill="#0a1008"/><circle cx="57" cy="54" r="2.5" fill="#0a1008"/><path d="M45 65 Q50 69 55 65" stroke="#a07848" stroke-width="1.5" fill="none"/><rect x="30" y="30" width="40" height="10" rx="4" fill="#4a3010"/><path d="M24 40 Q50 35 76 40" stroke="#3a2008" stroke-width="5" fill="none" stroke-linecap="round"/>` },
-  { id: 'scar',      label: 'The Knife',     svg: `<circle cx="50" cy="50" r="50" fill="#120808"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#b89070"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#c4a080"/><ellipse cx="43" cy="53" rx="5" ry="6" fill="#784830"/><ellipse cx="57" cy="53" rx="5" ry="6" fill="#784830"/><circle cx="43" cy="53" r="3" fill="#100806"/><circle cx="57" cy="53" r="3" fill="#100806"/><path d="M44 65 Q50 70 56 65" stroke="#985840" stroke-width="1.5" fill="none"/><path d="M60 40 Q62 54 60 66" stroke="#900000" stroke-width="2.5" fill="none" opacity="0.65" stroke-linecap="round"/><path d="M32 28 Q34 35 32 45" stroke="#1a1010" stroke-width="8" stroke-linecap="round" fill="none"/>` },
-  { id: 'beret',     label: 'The Artist',    svg: `<circle cx="50" cy="50" r="50" fill="#080a10"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#d4b090"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#e0c0a0"/><ellipse cx="43" cy="53" rx="4" ry="5" fill="#5a4080"/><ellipse cx="57" cy="53" rx="4" ry="5" fill="#5a4080"/><circle cx="43" cy="53" r="2.5" fill="#080810"/><circle cx="57" cy="53" r="2.5" fill="#080810"/><path d="M44 65 Q50 70 56 65" stroke="#b08060" stroke-width="1.5" fill="none"/><ellipse cx="52" cy="28" rx="23" ry="13" fill="#1a1040"/><circle cx="66" cy="23" r="4" fill="#2a2060"/>` },
-  { id: 'widow',     label: 'The Widow',     svg: `<circle cx="50" cy="50" r="50" fill="#08080a"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#e0c8b0"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#eed8c0"/><ellipse cx="43" cy="53" rx="4" ry="5" fill="#804858"/><ellipse cx="57" cy="53" rx="4" ry="5" fill="#804858"/><circle cx="43" cy="53" r="2.5" fill="#080608"/><circle cx="57" cy="53" r="2.5" fill="#080608"/><path d="M43 66 Q50 62 57 66" stroke="#c04060" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M28 26 Q50 14 72 26 L68 42 Q50 50 32 42Z" fill="#101010"/><path d="M50 50 L48 72 L52 72Z" fill="#101010" opacity="0.5"/>` },
-  { id: 'priest',    label: 'The Priest',    svg: `<circle cx="50" cy="50" r="50" fill="#080810"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#d8c8b4"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#e4d4c0"/><ellipse cx="43" cy="53" rx="4" ry="5" fill="#506880"/><ellipse cx="57" cy="53" rx="4" ry="5" fill="#506880"/><circle cx="43" cy="53" r="2.5" fill="#080810"/><circle cx="57" cy="53" r="2.5" fill="#080810"/><path d="M44 65 Q50 69 56 65" stroke="#a89070" stroke-width="1.5" fill="none"/><rect x="30" y="18" width="40" height="22" rx="2" fill="#101018"/><rect x="44" y="22" width="12" height="3" rx="1" fill="#f0e0c0" opacity="0.5"/><rect x="47" y="19" width="6" height="9" rx="1" fill="#f0e0c0" opacity="0.4"/>` },
-  { id: 'captain',   label: 'The Captain',  svg: `<circle cx="50" cy="50" r="50" fill="#080a0a"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#c0a880"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#ceb490"/><ellipse cx="43" cy="53" rx="5" ry="6" fill="#406080"/><ellipse cx="57" cy="53" rx="5" ry="6" fill="#406080"/><circle cx="43" cy="53" r="3" fill="#080a10"/><circle cx="57" cy="53" r="3" fill="#080a10"/><path d="M44 65 Q50 70 56 65" stroke="#906840" stroke-width="1.5" fill="none"/><path d="M26 40 Q50 28 74 40 L72 44 Q50 34 28 44Z" fill="#162030"/><rect x="32" y="26" width="36" height="16" rx="3" fill="#1a2838"/><circle cx="50" cy="32" r="3" fill="#d4a820" opacity="0.8"/>` },
-  { id: 'mask',      label: 'The Mask',     svg: `<circle cx="50" cy="50" r="50" fill="#0a080a"/><ellipse cx="50" cy="60" rx="22" ry="20" fill="#c8a870"/><ellipse cx="50" cy="51" rx="20" ry="18" fill="#e0c8a0"/><ellipse cx="38" cy="47" rx="8" ry="10" fill="#f0e0c0" stroke="#c0a060" stroke-width="1"/><ellipse cx="62" cy="47" rx="8" ry="10" fill="#f0e0c0" stroke="#c0a060" stroke-width="1"/><ellipse cx="38" cy="47" rx="5" ry="7" fill="#101010"/><ellipse cx="62" cy="47" rx="5" ry="7" fill="#101010"/><path d="M28 47 L36 45" stroke="#c0a060" stroke-width="1.5"/><path d="M64 45 L72 47" stroke="#c0a060" stroke-width="1.5"/><path d="M42 62 Q50 59 58 62" stroke="#a07040" stroke-width="1.5" fill="none"/>` },
-  { id: 'glasses',   label: 'The Scholar',  svg: `<circle cx="50" cy="50" r="50" fill="#080a08"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#c8b090"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#d4bc9c"/><circle cx="43" cy="53" r="7" fill="none" stroke="#403020" stroke-width="2"/><circle cx="57" cy="53" r="7" fill="none" stroke="#403020" stroke-width="2"/><ellipse cx="43" cy="53" rx="5" ry="5" fill="#203840" opacity="0.7"/><ellipse cx="57" cy="53" rx="5" ry="5" fill="#203840" opacity="0.7"/><circle cx="44" cy="51" r="1.5" fill="rgba(255,255,255,0.25)"/><circle cx="58" cy="51" r="1.5" fill="rgba(255,255,255,0.25)"/><line x1="36" y1="51" x2="28" y2="53" stroke="#403020" stroke-width="1.5"/><line x1="64" y1="51" x2="72" y2="53" stroke="#403020" stroke-width="1.5"/><path d="M44 65 Q50 69 56 65" stroke="#a08860" stroke-width="1.5" fill="none"/><path d="M35 36 Q50 28 65 36 Q62 43 50 41 Q38 43 35 36Z" fill="#201808"/>` },
-  { id: 'curls',     label: 'The Dancer',   svg: `<circle cx="50" cy="50" r="50" fill="#0a0808"/><ellipse cx="50" cy="64" rx="22" ry="18" fill="#d8a888"/><ellipse cx="50" cy="56" rx="18" ry="16" fill="#e4b898"/><ellipse cx="43" cy="53" rx="4" ry="5" fill="#804848"/><ellipse cx="57" cy="53" rx="4" ry="5" fill="#804848"/><circle cx="43" cy="53" r="2.5" fill="#100808"/><circle cx="57" cy="53" r="2.5" fill="#100808"/><path d="M43 66 Q50 62 57 66" stroke="#c06060" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M28 32 Q24 20 30 16 Q38 26 36 40" fill="#200808"/><path d="M72 32 Q76 20 70 16 Q62 26 64 40" fill="#200808"/><path d="M30 28 Q50 18 70 28 Q68 44 50 46 Q32 44 30 28Z" fill="#2a1010"/>` },
-  { id: 'bald',      label: 'The Enforcer', svg: `<circle cx="50" cy="50" r="50" fill="#100808"/><ellipse cx="50" cy="60" rx="24" ry="20" fill="#b89068"/><ellipse cx="50" cy="51" rx="20" ry="22" fill="#c8a078"/><ellipse cx="43" cy="51" rx="6" ry="7" fill="#684028"/><ellipse cx="57" cy="51" rx="6" ry="7" fill="#684028"/><circle cx="43" cy="51" r="4" fill="#100806"/><circle cx="57" cy="51" r="4" fill="#100806"/><path d="M44 64 Q50 60 56 64" stroke="#d04040" stroke-width="2.5" fill="none" stroke-linecap="round"/><path d="M30 28 Q50 16 70 28 Q68 37 50 35 Q32 37 30 28Z" fill="#181008"/>` },
+  { id: 'fedora',    label: 'The Don',       bg: '#1a0a0a', accent: '#C0141C', symbol: '🎩', initials: 'TD' },
+  { id: 'veil',      label: 'The Ghost',     bg: '#0a0a1a', accent: '#8B5CF6', symbol: '👻', initials: 'GH' },
+  { id: 'detective', label: 'The Eye',       bg: '#0a100a', accent: '#2A7FD4', symbol: '🔍', initials: 'EY' },
+  { id: 'scar',      label: 'The Knife',     bg: '#120808', accent: '#C0141C', symbol: '🗡️', initials: 'KN' },
+  { id: 'beret',     label: 'The Artist',    bg: '#080a10', accent: '#8B5CF6', symbol: '🎨', initials: 'AR' },
+  { id: 'widow',     label: 'The Widow',     bg: '#08080a', accent: '#C9A84C', symbol: '🕷️', initials: 'WD' },
+  { id: 'priest',    label: 'The Priest',    bg: '#080810', accent: '#9E9A94', symbol: '✝️', initials: 'PR' },
+  { id: 'captain',   label: 'The Captain',   bg: '#080a0a', accent: '#2A7FD4', symbol: '⚓', initials: 'CP' },
+  { id: 'mask',      label: 'The Mask',      bg: '#0a080a', accent: '#C9A84C', symbol: '🎭', initials: 'MK' },
+  { id: 'glasses',   label: 'The Scholar',   bg: '#080a08', accent: '#1DB36A', symbol: '📚', initials: 'SC' },
+  { id: 'curls',     label: 'The Dancer',    bg: '#0a0808', accent: '#EA580C', symbol: '🌹', initials: 'DN' },
+  { id: 'bald',      label: 'The Enforcer',  bg: '#100808', accent: '#C0141C', symbol: '💀', initials: 'EN' },
 ];
+
 
 function Avatar({ avatarId, size = 40, dead = false, style = {} }) {
   const av = AVATARS.find(a => a.id === avatarId) || AVATARS[0];
+  const fontSize = Math.round(size * 0.38);
+  const emojiSize = Math.round(size * 0.42);
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, filter: dead ? 'grayscale(100%) brightness(0.35)' : 'none', transition: 'filter 0.4s ease', ...style }}>
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width={size} height={size} dangerouslySetInnerHTML={{ __html: av.svg }} />
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: dead ? '#111' : av.bg,
+      border: `1px solid ${dead ? 'rgba(255,255,255,0.06)' : av.accent + '40'}`,
+      boxShadow: dead ? 'none' : `0 0 ${size * 0.4}px ${av.accent}22`,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 0, overflow: 'hidden', position: 'relative',
+      filter: dead ? 'grayscale(100%) brightness(0.3)' : 'none',
+      transition: 'filter 0.4s ease, box-shadow 0.3s ease',
+      ...style
+    }}>
+      <span style={{ fontSize: emojiSize, lineHeight: 1, userSelect: 'none' }}>{av.symbol}</span>
+      <span style={{
+        fontFamily: 'DM Mono, monospace', fontSize: Math.round(size * 0.18),
+        letterSpacing: '0.06em', color: av.accent, lineHeight: 1,
+        marginTop: Math.round(size * 0.04), userSelect: 'none',
+      }}>{av.initials}</span>
     </div>
   );
 }
@@ -186,11 +204,18 @@ const GlobalStyles = () => (
 export default function MafiaGame() {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [gameCode, setGameCode] = useState('');
+  // Restore gameCode from sessionStorage so page refreshes reconnect to the game
+  const [gameCode, setGameCode] = useState(() => sessionStorage.getItem('mafia_game_code') || '');
   const defaultName = localStorage.getItem('discord_username') || '';
   const [playerName, setPlayerName] = useState(defaultName);
   const [selectedAvatar, setSelectedAvatar] = useState('fedora');
   const [error, setError] = useState('');
+
+  // Keep sessionStorage in sync whenever gameCode changes
+  useEffect(() => {
+    if (gameCode) sessionStorage.setItem('mafia_game_code', gameCode);
+    else sessionStorage.removeItem('mafia_game_code');
+  }, [gameCode]);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -289,8 +314,20 @@ function MainMenu({ playerName, setPlayerName, selectedAvatar, setSelectedAvatar
             <label style={{ display:'block', fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:12 }}>Choose Your Character</label>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:8, marginBottom:10 }}>
               {AVATARS.map((av, idx) => (
-                <button key={av.id} onClick={() => setSelectedAvatar(av.id)} title={av.label} style={{ padding:0, borderRadius:14, cursor:'pointer', border:'none', background:'none', outline:selectedAvatar===av.id?'2px solid var(--blood)':'2px solid rgba(255,255,255,0.06)', outlineOffset:2, transition:'outline 0.15s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1)', transform:selectedAvatar===av.id?'scale(1.1)':'scale(1)', animation:mounted?`avatarPop 0.4s cubic-bezier(0.34,1.56,0.64,1) ${idx*35}ms both`:'none', aspectRatio:'1/1', overflow:'hidden', display:'block', width:'100%' }} onMouseEnter={e=>{if(selectedAvatar!==av.id)e.currentTarget.style.transform='scale(1.06)';}} onMouseLeave={e=>{if(selectedAvatar!==av.id)e.currentTarget.style.transform='scale(1)';}}>
-                  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ width:'100%', height:'100%', display:'block' }} dangerouslySetInnerHTML={{ __html: av.svg }} />
+                <button key={av.id} onClick={() => setSelectedAvatar(av.id)} title={av.label}
+                  style={{ padding:0, borderRadius:14, cursor:'pointer', border:'none',
+                    background: av.bg,
+                    outline: selectedAvatar===av.id ? `2px solid ${av.accent}` : '2px solid rgba(255,255,255,0.06)',
+                    outlineOffset:2, transition:'outline 0.15s ease, transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s',
+                    transform: selectedAvatar===av.id ? 'scale(1.1)' : 'scale(1)',
+                    boxShadow: selectedAvatar===av.id ? `0 0 16px ${av.accent}50` : 'none',
+                    animation: mounted ? `avatarPop 0.4s cubic-bezier(0.34,1.56,0.64,1) ${idx*35}ms both` : 'none',
+                    aspectRatio:'1/1', overflow:'hidden', display:'flex', flexDirection:'column',
+                    alignItems:'center', justifyContent:'center', width:'100%' }}
+                  onMouseEnter={e=>{if(selectedAvatar!==av.id)e.currentTarget.style.transform='scale(1.06)';}}
+                  onMouseLeave={e=>{if(selectedAvatar!==av.id)e.currentTarget.style.transform='scale(1)';}}>
+                  <span style={{ fontSize:22, lineHeight:1, userSelect:'none' }}>{av.symbol}</span>
+                  <span style={{ fontFamily:'DM Mono,monospace', fontSize:9, letterSpacing:'0.06em', color:av.accent, lineHeight:1, marginTop:3, userSelect:'none' }}>{av.initials}</span>
                 </button>
               ))}
             </div>
@@ -574,7 +611,7 @@ function GameRoom({ user, gameCode, onLeave }) {
       case 'role_reveal': return <RoleReveal game={game} me={me} user={user} />;
       case 'night':       return <NightPhase key={`night-${game.phaseNum}`} game={game} me={me} user={user} />;
       case 'day':         return <DayPhase key={`day-${game.phaseNum}`} game={game} me={me} user={user} />;
-      case 'game_over':   return <GameOver game={game} me={me} onLeave={onLeave} />;
+      case 'game_over':   return <GameOver game={game} me={me} user={user} onLeave={onLeave} />;
       default: return null;
     }
   };
@@ -1061,7 +1098,16 @@ function GameOver({ game, me, onLeave }) {
             {Object.values(game.players).map((p,idx)=>{const rc=roleColor[p.role]||'var(--text-dim)'; return (<div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'8px 12px', borderRadius:8, background:'rgba(255,255,255,0.02)', border:'1px solid var(--noir-border)', animation:`playerRowIn 0.35s ease ${0.7+idx*0.06}s both`, opacity:0 }}><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar avatarId={p.avatarId} size={28} dead={!p.isAlive}/><span style={{ fontSize:15, color:p.isAlive?'var(--text-bright)':'var(--text-dim)', textDecoration:!p.isAlive?'line-through':'none' }}>{p.name}{!p.isAlive&&' ☩'}</span></div><span className="role-badge" style={{ background:`${rc}15`, border:`1px solid ${rc}35`, color:rc }}>{p.role}</span></div>);  })}
           </div>
         </div>
-        <button onClick={onLeave} className="btn-ghost" style={{ padding:'12px 32px', borderRadius:10, animation:'fadeUp 0.4s ease 1.2s both', opacity:0 }}>Return to Menu</button>
+        <div style={{ display:'flex', gap:10, justifyContent:'center', animation:'fadeUp 0.4s ease 1.2s both', opacity:0 }}>
+          {game.hostId===user.uid && (
+            <button onClick={async () => {
+              const resetPlayers = Object.fromEntries(Object.entries(game.players).map(([uid, p]) => [uid, { ...p, role: 'unassigned', isAlive: true, hasUsedAbility: false, doused: false }]));
+              await updateDoc(getGameRef(game.code), { status: 'lobby', winner: null, phaseNum: 1, players: resetPlayers, actions: {}, guesses: {}, messages: [], mafiaMessages: [], wills: {}, dawnSeen: {}, logs: [], investigations: {}, nightDeaths: [], blackmailed: null });
+            }} className="btn-blood" style={{ padding:'12px 28px', borderRadius:10, flex:1 }}>Play Again</button>
+          )}
+          <button onClick={onLeave} className="btn-ghost" style={{ padding:'12px 28px', borderRadius:10, flex: game.hostId===user.uid ? '0 0 auto' : 1 }}>Leave Room</button>
+        </div>
+        {game.hostId!==user.uid && <p style={{ marginTop:12, fontFamily:'DM Mono', fontSize:9, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Waiting for host to start a new game…</p>}
       </div>
     </div>
   );
