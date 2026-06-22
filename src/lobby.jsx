@@ -146,7 +146,25 @@ const GlobalStyles = () => (
       gap: 8px;
       min-height: 0;
     }
-    @keyframes typingDot {
+    .lobby-columns {
+      display: flex;
+      flex-direction: row;
+      gap: 16px;
+      flex: 1;
+      min-height: 0;
+      align-items: stretch;
+      padding-bottom: 20px;
+    }
+    .lobby-col-players  { flex: 0 0 220px; display: flex; flex-direction: column; overflow: hidden; }
+    .lobby-col-roles    { flex: 0 0 300px; display: flex; flex-direction: column; overflow: hidden; }
+    .lobby-col-chat     { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+    @media (max-width: 768px) {
+      .lobby-wrapper   { height: auto !important; padding: 0 12px !important; }
+      .lobby-columns   { flex-direction: column; flex: unset; min-height: unset; align-items: stretch; padding-bottom: 16px; }
+      .lobby-col-players  { flex: unset; overflow: visible; }
+      .lobby-col-roles    { flex: unset; overflow: visible; }
+      .lobby-col-chat     { flex: unset; min-height: 360px; }
+    }
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
       40% { transform: scale(1); opacity: 1; }
     }
@@ -872,7 +890,7 @@ function Lobby({ game, isHost, user, onLeave }) {
   ];
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', flex:1, padding:'0 20px', boxSizing:'border-box' }}>
+    <div className="lobby-wrapper" style={{ display:'flex', flexDirection:'column', height:'100%', flex:1, padding:'0 20px', boxSizing:'border-box' }}>
       {/* Header row */}
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 16px', animation:'fadeUp 0.5s ease both', flexShrink:0 }}>
         <div>
@@ -882,11 +900,11 @@ function Lobby({ game, isHost, user, onLeave }) {
         <button onClick={onLeave} className="btn-ghost" style={{ padding:'9px 20px', borderRadius:9, fontSize:13 }}>Leave Room</button>
       </div>
 
-      {/* Three-column layout: Players | Role Setup | Chat — stretches to fill remaining height */}
-      <div style={{ display:'flex', gap:16, flex:1, minHeight:0, alignItems:'stretch', paddingBottom:20 }}>
+      {/* Three-column layout: Players | Role Setup | Chat */}
+      <div className="lobby-columns">
 
         {/* Players list */}
-        <div className="glass-card" style={{ flex:'0 0 220px', padding:20, display:'flex', flexDirection:'column', animation:'fadeUp 0.5s ease 0.1s both', overflow:'hidden' }}>
+        <div className="glass-card lobby-col-players" style={{ padding:20, animation:'fadeUp 0.5s ease 0.1s both' }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, flexShrink:0 }}>
             <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', display:'flex', alignItems:'center', gap:8 }}><Users size={12}/> Players</h3>
             <span style={{ fontFamily:'DM Mono', fontSize:11, color:'var(--text-dim)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--noir-border)', borderRadius:6, padding:'2px 10px' }}>{playersList.length} joined</span>
@@ -903,7 +921,7 @@ function Lobby({ game, isHost, user, onLeave }) {
         </div>
 
         {/* Role setup */}
-        <div className="glass-card" style={{ flex:'0 0 300px', padding:20, display:'flex', flexDirection:'column', animation:'fadeUp 0.5s ease 0.2s both', overflow:'hidden' }}>
+        <div className="glass-card lobby-col-roles" style={{ padding:20, animation:'fadeUp 0.5s ease 0.2s both' }}>
           <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:14, flexShrink:0 }}>Role Setup</h3>
           <div style={{ display:'flex', flexDirection:'column', gap:8, overflowY:'auto', flex:1, minHeight:0, paddingRight:2 }}>
             {roleCategories.map(cat => {
@@ -936,15 +954,17 @@ function Lobby({ game, isHost, user, onLeave }) {
               );
             })}
           </div>
-          <div style={{ height:1, background:'var(--noir-border)', margin:'16px 0' }}/>
-          {isHost
-            ? <button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'13px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>
-            : <div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Awaiting host</span></div>
-          }
+          <div style={{ height:1, background:'var(--noir-border)', margin:'16px 0', flexShrink:0 }}/>
+          <div style={{ flexShrink:0 }}>
+            {isHost
+              ? <button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'13px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>
+              : <div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Awaiting host</span></div>
+            }
+          </div>
         </div>
 
-        {/* Lobby chat — takes remaining width */}
-        <div className="glass-card" style={{ flex:1, minWidth:0, padding:0, overflow:'hidden', display:'flex', flexDirection:'column', animation:'fadeUp 0.5s ease 0.3s both' }}>
+        {/* Lobby chat — takes remaining width on desktop, fixed height on mobile */}
+        <div className="glass-card lobby-col-chat" style={{ padding:0, animation:'fadeUp 0.5s ease 0.3s both' }}>
           <LobbyChatBox game={game} user={user} />
         </div>
 
