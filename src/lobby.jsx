@@ -8,7 +8,7 @@ import {
   getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
 } from 'firebase/auth';
 import { 
-  getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion, getDoc
+  getFirestore, doc, setDoc, updateDoc, onSnapshot, arrayUnion, getDoc, deleteField
 } from 'firebase/firestore';
 
 const firebaseConfig = {
@@ -279,7 +279,7 @@ export default function MafiaGame() {
       <div className="noise" style={{ minHeight: '100vh', background: 'var(--noir-black)' }}>
         {!gameCode
           ? <MainMenu playerName={playerName} setPlayerName={setPlayerName} selectedAvatar={selectedAvatar} setSelectedAvatar={setSelectedAvatar} onCreate={handleCreateGame} onJoin={handleJoinGame} error={error} setError={setError} />
-          : <GameRoom user={user} gameCode={gameCode} onLeave={() => setGameCode('')} />
+          : <GameRoom user={user} gameCode={gameCode} onLeave={() => { setGameCode(''); sessionStorage.removeItem('mafia_game_code'); }} />
         }
       </div>
     </>
@@ -380,6 +380,14 @@ function GameRoom({ user, gameCode, onLeave }) {
       (snap) => {
         if (!snap.exists()) { setError("Game has been deleted."); return; }
         const data = snap.data();
+
+        // If this player was removed from the game (kicked or left on another tab), boot them
+        if (data.status !== 'deleted' && user && !data.players?.[user.uid]) {
+          sessionStorage.removeItem('mafia_game_code');
+          onLeave();
+          return;
+        }
+
         setGame(data);
 
         const msgLen      = (data.messages      || []).length;
@@ -430,6 +438,35 @@ function GameRoom({ user, gameCode, onLeave }) {
     return () => unsub();
   }, [user, gameCode]);
 
+  const handleLeave = async () => {
+    try {
+      const snap = await getDoc(getGameRef(gameCode));
+      if (snap.exists()) {
+        const data = snap.data();
+        const players = data.players || {};
+        const remaining = Object.keys(players).filter(uid => uid !== user.uid);
+
+        if (remaining.length === 0) {
+          // Last player — delete the game document entirely by clearing it
+          await updateDoc(getGameRef(gameCode), {
+            [`players.${user.uid}`]: deleteField(),
+            status: 'deleted',
+          });
+        } else {
+          const updates = { [`players.${user.uid}`]: deleteField() };
+          // Reassign host if the leaving player is the current host
+          if (data.hostId === user.uid) {
+            updates.hostId = remaining[0];
+          }
+          await updateDoc(getGameRef(gameCode), updates);
+        }
+      }
+    } catch (err) {
+      console.error('Leave error:', err);
+    }
+    sessionStorage.removeItem('mafia_game_code');
+    onLeave();
+  };
   const openDrawer = (tab) => {
     drawerTabRef.current  = tab;
     drawerOpenRef.current = true;
@@ -584,7 +621,7 @@ function GameRoom({ user, gameCode, onLeave }) {
   if (error) return (
     <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }}>
       <p style={{ color:'#F87171', fontSize:18 }}>{error}</p>
-      <button onClick={onLeave} className="btn-ghost" style={{ padding:'10px 20px', borderRadius:8 }}>Return to Menu</button>
+      <button onClick={handleLeave} className="btn-ghost" style={{ padding:'10px 20px', borderRadius:8 }}>Return to Menu</button>
     </div>
   );
   if (!game) return (
@@ -607,11 +644,11 @@ function GameRoom({ user, gameCode, onLeave }) {
 
   const renderPhase = () => {
     switch (game.status) {
-      case 'lobby':       return <Lobby game={game} isHost={isHost} user={user} onLeave={onLeave} />;
+      case 'lobby':       return <Lobby game={game} isHost={isHost} user={user} onLeave={handleLeave} />;
       case 'role_reveal': return <RoleReveal game={game} me={me} user={user} />;
       case 'night':       return <NightPhase key={`night-${game.phaseNum}`} game={game} me={me} user={user} />;
       case 'day':         return <DayPhase key={`day-${game.phaseNum}`} game={game} me={me} user={user} />;
-      case 'game_over':   return <GameOver game={game} me={me} user={user} onLeave={onLeave} />;
+      case 'game_over':   return <GameOver game={game} me={me} user={user} onLeave={handleLeave} />;
       default: return null;
     }
   };
