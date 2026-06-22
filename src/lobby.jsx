@@ -147,27 +147,118 @@ const GlobalStyles = () => (
       min-height: 0;
     }
     .lobby-columns {
-      display: flex;
-      flex-direction: row;
-      gap: 16px;
-      flex: 1;
-      min-height: 0;
-      align-items: stretch;
-      padding-bottom: 20px;
-    }
-    .lobby-col-players  { flex: 0 0 220px; display: flex; flex-direction: column; overflow: hidden; }
-    .lobby-col-roles    { flex: 0 0 300px; display: flex; flex-direction: column; overflow: hidden; }
-    .lobby-col-chat     { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-    @media (max-width: 768px) {
-      .lobby-wrapper   { height: auto !important; padding: 0 12px !important; }
-      .lobby-columns   { flex-direction: column; flex: unset; min-height: unset; align-items: stretch; padding-bottom: 16px; }
-      .lobby-col-players  { flex: unset; overflow: visible; }
-      .lobby-col-roles    { flex: unset; overflow: visible; }
-      .lobby-col-chat     { flex: unset; min-height: 360px; }
-    }
-      0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
-      40% { transform: scale(1); opacity: 1; }
-    }
+  display: flex;
+  flex-direction: row;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+  padding-bottom: 20px;
+  overflow: hidden; /* important */
+}
+
+.lobby-col-players {
+  flex: 0 0 220px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.lobby-col-roles {
+  flex: 0 0 300px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.lobby-col-chat {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* make the chat box itself a bounded flex column */
+.lobby-col-chat > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* actual scrolling area */
+.chat-scroll-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .lobby-wrapper {
+    height: auto !important;
+    padding: 0 12px !important;
+  }
+
+  .lobby-columns {
+    flex-direction: column;
+    flex: unset;
+    min-height: unset;
+    align-items: stretch;
+    padding-bottom: 16px;
+    overflow: visible;
+  }
+
+  .lobby-col-players {
+    flex: unset;
+    overflow: visible;
+  }
+
+  .lobby-col-roles {
+    flex: unset;
+    overflow: visible;
+  }
+
+  .lobby-col-chat {
+    flex: unset;
+    height: 420px; /* fixed chat height on mobile */
+    min-height: 420px;
+    overflow: hidden;
+  }
+
+  .lobby-col-chat > div {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .chat-scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
+@keyframes typingDot {
+  0%, 80%, 100% {
+    transform: scale(0.6);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 
     .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; }
     .drawer-panel { position: fixed; bottom: 0; left: 0; right: 0; height: 80vh; background: var(--noir-card); border-top: 1px solid var(--noir-border); border-radius: 20px 20px 0 0; z-index: 201; display: flex; flex-direction: column; transform: translateY(100%); transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1); }
