@@ -901,7 +901,7 @@ function LobbyChatBox({ game, user }) {
   };
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', minHeight:0, flex:1 }}>
+    <div style={{ display:'flex', flexDirection:'column', minHeight:0, flex:1, overflow:'hidden' }}>
       <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--noir-border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         <MessageSquare size={11} color="var(--text-dim)"/>
         <span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)' }}>Lobby Chat</span>
