@@ -145,9 +145,10 @@ const GlobalStyles = () => (
       flex-direction: column;
       gap: 8px;
       min-height: 0;
+      max-height: 420px;
     }
     @media (max-width: 768px) {
-      .chat-scroll-area { max-height: 340px; }
+      .chat-scroll-area { max-height: 300px; }
     }
     @keyframes typingDot {
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
