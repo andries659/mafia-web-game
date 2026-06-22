@@ -146,6 +146,11 @@ const GlobalStyles = () => (
       gap: 8px;
       /* never bigger than the remaining sidebar space */
       min-height: 0;
+      max-height: 420px;
+    }
+    @keyframes typingDot {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+      40% { transform: scale(1); opacity: 1; }
     }
 
     .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 200; }
@@ -211,6 +216,13 @@ export default function MafiaGame() {
   const [selectedAvatar, setSelectedAvatar] = useState('fedora');
   const [error, setError] = useState('');
 
+  // If discord_username is written into localStorage (e.g. after OAuth callback redirects
+  // to /lobby), pick it up and pre-fill the alias box
+  useEffect(() => {
+    const name = localStorage.getItem('discord_username');
+    if (name && !playerName) setPlayerName(name);
+  }, []);
+
   // Keep sessionStorage in sync whenever gameCode changes
   useEffect(() => {
     if (gameCode) sessionStorage.setItem('mafia_game_code', gameCode);
@@ -254,7 +266,7 @@ export default function MafiaGame() {
         code, hostId: user.uid, status: 'lobby', phaseNum: 1, winner: null,
         settings: { mafia:0,godfather:0,framer:0,kidnapper:0,janitor:0,doctor:0,detective:0,sheriff:0,vigilante:0,bodyguard:0,jester:0,escort:0,mayor:0,tracker:0,lookout:0,veteran:0,blackmailer:0,spy:0,arsonist:0,medium:0 },
         players: { [user.uid]: { id:user.uid, name:playerName, avatarId:selectedAvatar, role:'unassigned', isAlive:true, hasUsedAbility:false } },
-        actions:{}, guesses:{}, messages:[], mafiaMessages:[], wills:{}, dawnSeen:{}, logs:[], investigations:{}, lobbyChatMessages:[]
+        actions:{}, guesses:{}, messages:[], mafiaMessages:[], wills:{}, dawnSeen:{}, logs:[], investigations:{}, lobbyChatMessages:[], lobbyTyping:{}, typing:{}, mafiaTyping:{}
       });
       setGameCode(code);
     } catch (err) { console.error("Create game error:", err); setError("Failed to create game: " + (err?.message || err)); }
@@ -736,19 +748,49 @@ function LobbyChatBox({ game, user }) {
   const me = game.players[user.uid];
   const [msg, setMsg] = useState('');
   const scrollRef = useRef(null);
+  const typingTimerRef = useRef(null);
   const messages = game.lobbyChatMessages || [];
+  const typingMap = game.lobbyTyping || {};
+  const typingOthers = Object.entries(typingMap)
+    .filter(([uid, ts]) => uid !== user.uid && Date.now() - ts < 5000)
+    .map(([uid]) => game.players[uid]?.name)
+    .filter(Boolean);
+  const typingLabel = typingOthers.length === 1
+    ? `${typingOthers[0]} is typing…`
+    : typingOthers.length === 2
+    ? `${typingOthers[0]} and ${typingOthers[1]} are typing…`
+    : typingOthers.length > 2 ? 'Several people are typing…' : '';
 
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length]);
 
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimerRef.current);
+      updateDoc(getGameRef(game.code), { [`lobbyTyping.${user.uid}`]: deleteField() }).catch(() => {});
+    };
+  }, []);
+
+  const handleTyping = () => {
+    updateDoc(getGameRef(game.code), { [`lobbyTyping.${user.uid}`]: Date.now() }).catch(() => {});
+    clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      updateDoc(getGameRef(game.code), { [`lobbyTyping.${user.uid}`]: deleteField() }).catch(() => {});
+    }, 4000);
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!msg.trim() || !me) return;
     const messageObj = { senderId: user.uid, senderName: me.name, senderAvatarId: me.avatarId, text: msg.trim(), timestamp: Date.now() };
     setMsg('');
-    await updateDoc(getGameRef(game.code), { lobbyChatMessages: arrayUnion(messageObj) });
+    clearTimeout(typingTimerRef.current);
+    await updateDoc(getGameRef(game.code), {
+      lobbyChatMessages: arrayUnion(messageObj),
+      [`lobbyTyping.${user.uid}`]: deleteField(),
+    });
   };
 
   return (
@@ -757,7 +799,7 @@ function LobbyChatBox({ game, user }) {
         <MessageSquare size={11} color="var(--text-dim)"/>
         <span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)' }}>Lobby Chat</span>
       </div>
-      <div ref={scrollRef} className="chat-scroll-area" style={{ flex:1, minHeight:0, overflowY:'auto', padding:'12px 14px', display:'flex', flexDirection:'column', gap:8 }}>
+      <div ref={scrollRef} className="chat-scroll-area">
         {messages.length === 0 && (
           <p style={{ textAlign:'center', color:'var(--text-dim)', fontSize:13, fontStyle:'italic', marginTop:16 }}>Silence fills the room…</p>
         )}
@@ -775,8 +817,21 @@ function LobbyChatBox({ game, user }) {
           );
         })}
       </div>
+      {/* Typing indicator */}
+      <div style={{ minHeight:24, padding:'3px 16px', flexShrink:0, display:'flex', alignItems:'center', gap:6 }}>
+        {typingLabel && (
+          <>
+            <span style={{ display:'flex', gap:3, alignItems:'center' }}>
+              {[0,1,2].map(i => (
+                <span key={i} style={{ width:4, height:4, borderRadius:'50%', background:'var(--text-dim)', display:'inline-block', animation:`typingDot 1.2s ease-in-out ${i*0.2}s infinite` }}/>
+              ))}
+            </span>
+            <span style={{ fontFamily:'DM Mono', fontSize:9, letterSpacing:'0.06em', color:'var(--text-dim)' }}>{typingLabel}</span>
+          </>
+        )}
+      </div>
       <form onSubmit={handleSend} style={{ padding:'10px 12px', borderTop:'1px solid var(--noir-border)', display:'flex', gap:8, flexShrink:0 }}>
-        <input type="text" value={msg} onChange={e => setMsg(e.target.value)}
+        <input type="text" value={msg} onChange={e => { setMsg(e.target.value); handleTyping(); }}
           placeholder="Say something…" className="noir-input"
           style={{ flex:1, padding:'8px 12px', borderRadius:8, fontSize:14 }}
         />
@@ -806,7 +861,7 @@ function Lobby({ game, isHost, user, onLeave }) {
     roles.sort(()=>Math.random()-0.5);
     let updatedPlayers={...game.players};
     playersList.forEach((p,idx) => { updatedPlayers[p.id].role=roles[idx]; });
-    await updateDoc(getGameRef(game.code), { status:'role_reveal', players:updatedPlayers, lobbyChatMessages:[], messages:[] });
+    await updateDoc(getGameRef(game.code), { status:'role_reveal', players:updatedPlayers, lobbyChatMessages:[], messages:[], lobbyTyping:{}, typing:{}, mafiaTyping:{} });
   };
 
   const roleCategories = [
@@ -1251,27 +1306,62 @@ function PlayerList({ game, me }) {
 // ─── Chat Box ─────────────────────────────────────────────────────────────────
 function ChatBox({ game, me, user, isMafiaChat = false }) {
   const [msg, setMsg] = useState('');
-  // ↓ ref to the scrollable container div — NOT the sentinel element
   const scrollContainerRef = useRef(null);
+  const typingTimerRef = useRef(null);
   const isNight = game.status === 'night';
   const isBlackmailed = !isMafiaChat && game.blackmailed?.target === user.uid && game.blackmailed?.phase === game.phaseNum;
   const canChat = isMafiaChat ? (isMafiaRole(me.role) && me.isAlive) : (!isNight && me.isAlive && !isBlackmailed);
   const messages = isMafiaChat ? (game.mafiaMessages || []) : (game.messages || []);
+  const typingField = isMafiaChat ? 'mafiaTyping' : 'typing';
+  const typingMap = game[typingField] || {};
+  const typingOthers = Object.entries(typingMap)
+    .filter(([uid, ts]) => uid !== user.uid && Date.now() - ts < 5000)
+    .map(([uid]) => game.players[uid]?.name)
+    .filter(Boolean);
 
   useEffect(() => {
-    // Scroll the chat container itself — never touches the page scroll
     const el = scrollContainerRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length]);
+
+  // Clear own typing flag when component unmounts
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimerRef.current);
+      updateDoc(getGameRef(game.code), { [`${typingField}.${user.uid}`]: deleteField() }).catch(() => {});
+    };
+  }, []);
+
+  const handleTyping = () => {
+    if (!canChat) return;
+    // Write timestamp; server/other clients treat entries > 5s old as stale
+    updateDoc(getGameRef(game.code), { [`${typingField}.${user.uid}`]: Date.now() }).catch(() => {});
+    clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      updateDoc(getGameRef(game.code), { [`${typingField}.${user.uid}`]: deleteField() }).catch(() => {});
+    }, 4000);
+  };
 
   const handleSend = async (e) => {
     e.preventDefault();
     if (!msg.trim() || !canChat) return;
     const messageObj = { senderId:user.uid, senderName:me.name, senderAvatarId:me.avatarId, text:msg.trim(), isDead:!me.isAlive, phase:game.status, timestamp:Date.now() };
     setMsg('');
+    clearTimeout(typingTimerRef.current);
     const field = isMafiaChat ? 'mafiaMessages' : 'messages';
-    await updateDoc(getGameRef(game.code), { [field]: arrayUnion(messageObj) });
+    await updateDoc(getGameRef(game.code), {
+      [field]: arrayUnion(messageObj),
+      [`${typingField}.${user.uid}`]: deleteField(),
+    });
   };
+
+  const typingLabel = typingOthers.length === 1
+    ? `${typingOthers[0]} is typing…`
+    : typingOthers.length === 2
+    ? `${typingOthers[0]} and ${typingOthers[1]} are typing…`
+    : typingOthers.length > 2
+    ? 'Several people are typing…'
+    : '';
 
   return (
     <div style={{ flex:1, display:'flex', flexDirection:'column', minHeight:0, background:isMafiaChat?'rgba(192,20,28,0.04)':'transparent' }}>
@@ -1291,13 +1381,6 @@ function ChatBox({ game, me, user, isMafiaChat = false }) {
         </div>
       )}
 
-      {/*
-        THE FIX: this div is the scroll container.
-        - overflow-y: auto  → only this div scrolls, not the page
-        - flex: 1           → takes up remaining space
-        - min-height: 0     → lets flex shrink below content size
-        We ref this div and set scrollTop directly — no scrollIntoView.
-      */}
       <div ref={scrollContainerRef} className="chat-scroll-area">
         {messages.length === 0 && (
           <p style={{ textAlign:'center', color:'var(--text-dim)', fontSize:13, fontStyle:'italic', marginTop:20 }}>
@@ -1321,6 +1404,20 @@ function ChatBox({ game, me, user, isMafiaChat = false }) {
         })}
       </div>
 
+      {/* Typing indicator */}
+      <div style={{ minHeight:24, padding:'3px 16px', flexShrink:0, display:'flex', alignItems:'center', gap:6 }}>
+        {typingLabel && (
+          <>
+            <span style={{ display:'flex', gap:3, alignItems:'center' }}>
+              {[0,1,2].map(i => (
+                <span key={i} style={{ width:4, height:4, borderRadius:'50%', background: isMafiaChat ? 'var(--blood)' : 'var(--text-dim)', display:'inline-block', animation:`typingDot 1.2s ease-in-out ${i*0.2}s infinite` }}/>
+              ))}
+            </span>
+            <span style={{ fontFamily:'DM Mono', fontSize:9, letterSpacing:'0.06em', color: isMafiaChat ? 'rgba(192,20,28,0.7)' : 'var(--text-dim)' }}>{typingLabel}</span>
+          </>
+        )}
+      </div>
+
       {/* Blackmailed notice */}
       {isBlackmailed && (
         <div style={{ padding:'6px 12px', background:'rgba(192,20,28,0.1)', borderTop:'1px solid rgba(192,20,28,0.2)', display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
@@ -1331,7 +1428,7 @@ function ChatBox({ game, me, user, isMafiaChat = false }) {
 
       {/* Input */}
       <form onSubmit={handleSend} style={{ padding:'10px 12px', borderTop:`1px solid ${isMafiaChat?'rgba(192,20,28,0.2)':'var(--noir-border)'}`, display:'flex', gap:8, flexShrink:0 }}>
-        <input type="text" value={msg} onChange={e=>setMsg(e.target.value)}
+        <input type="text" value={msg} onChange={e=>{ setMsg(e.target.value); handleTyping(); }}
           placeholder={isBlackmailed?'You have been silenced...':!canChat?(isMafiaChat?'Mafia only...':'Silence until dawn...'):(isMafiaChat?'Message your family...':'Speak to the town...')}
           disabled={!canChat} className="noir-input"
           style={{ flex:1, padding:'8px 12px', borderRadius:8, fontSize:14, ...(isMafiaChat&&canChat?{borderColor:'rgba(192,20,28,0.3)'}:{}) }}

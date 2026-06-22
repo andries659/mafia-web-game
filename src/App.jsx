@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, useNavigate } from "react-router-dom";
 import MafiaGame from "./lobby";
 
 const DISCORD_CLIENT_ID = "1482384116937658528";
-const DISCORD_REDIRECT_URI = encodeURIComponent(window.location.origin + "/lobby");
+const DISCORD_REDIRECT_URI = encodeURIComponent(window.location.origin + "/discord-callback");
 const DISCORD_OAUTH_URL = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CLIENT_ID}&redirect_uri=${DISCORD_REDIRECT_URI}&response_type=token&scope=identify`;
 
 // ─── Global Styles ────────────────────────────────────────────────────────────
