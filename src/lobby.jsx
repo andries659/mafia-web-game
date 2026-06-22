@@ -149,25 +149,7 @@ const GlobalStyles = () => (
     @media (max-width: 768px) {
       .chat-scroll-area { max-height: 340px; }
     }
-    .lobby-columns {
-      display: flex;
-      flex-direction: row;
-      gap: 16px;
-      flex: 1;
-      min-height: 0;
-      align-items: stretch;
-      padding-bottom: 20px;
-    }
-    .lobby-col-players  { flex: 0 0 220px; display: flex; flex-direction: column; overflow: hidden; }
-    .lobby-col-roles    { flex: 0 0 300px; display: flex; flex-direction: column; overflow: hidden; }
-    .lobby-col-chat     { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-    @media (max-width: 768px) {
-      .lobby-wrapper   { height: auto !important; padding: 0 12px !important; }
-      .lobby-columns   { flex-direction: column; flex: unset; min-height: unset; align-items: stretch; padding-bottom: 16px; }
-      .lobby-col-players  { flex: unset; overflow: visible; }
-      .lobby-col-roles    { flex: unset; overflow: visible; }
-      .lobby-col-chat     { flex: unset; min-height: 360px; }
-    }
+    @keyframes typingDot {
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
       40% { transform: scale(1); opacity: 1; }
     }
@@ -685,7 +667,7 @@ function GameRoom({ user, gameCode, onLeave }) {
   };
 
   return (
-    <div style={{ width:'100%', minHeight:'100vh', display:'flex', flexDirection:'column' }}>
+    <div style={{ maxWidth:1200, margin:'0 auto', minHeight:'100vh', display:'flex', flexDirection:'column' }}>
       <header className="phase-bar" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', position:'sticky', top:0, zIndex:100, backdropFilter:'blur(12px)', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
           <div className="font-mono-custom" style={{ background:'rgba(255,255,255,0.04)', border:'1px solid var(--noir-border)', borderRadius:8, padding:'5px 14px', fontSize:14, letterSpacing:'0.3em', color:'var(--text-bright)', fontWeight:500 }}>{game.code}</div>
@@ -708,7 +690,7 @@ function GameRoom({ user, gameCode, onLeave }) {
         children (PlayerList + ChatBox) can scroll internally.
       */}
       <main style={{ flex:1, display:'flex', overflow:'hidden', minHeight:0 }}>
-        <div style={{ flex:1, display:'flex', flexDirection:'column', padding:'0', overflowY:'auto', minWidth:0 }}>
+        <div style={{ flex:1, padding:'20px', overflowY:'auto', minWidth:0 }}>
           {renderPhase()}
         </div>
         {showAside && (
@@ -893,28 +875,25 @@ function Lobby({ game, isHost, user, onLeave }) {
   ];
 
   return (
-    <div className="lobby-wrapper" style={{ display:'flex', flexDirection:'column', height:'100%', flex:1, padding:'0 20px', boxSizing:'border-box' }}>
-      {/* Header row */}
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 16px', animation:'fadeUp 0.5s ease both', flexShrink:0 }}>
+    <div style={{ display:'flex', flexDirection:'column', gap:20, maxWidth:960, margin:'0 auto' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 0', animation:'fadeUp 0.5s ease both' }}>
         <div>
           <h2 className="font-display" style={{ fontSize:32, color:'var(--text-bright)', fontWeight:700, marginBottom:4 }}>Gathering</h2>
           <p style={{ color:'var(--text-dim)', fontStyle:'italic' }}>Waiting for players to assemble</p>
         </div>
         <button onClick={onLeave} className="btn-ghost" style={{ padding:'9px 20px', borderRadius:9, fontSize:13 }}>Leave Room</button>
       </div>
-
-      {/* Three-column layout: Players | Role Setup | Chat */}
-      <div className="lobby-columns">
+      <div style={{ display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-start' }}>
 
         {/* Players list */}
-        <div className="glass-card lobby-col-players" style={{ padding:20, animation:'fadeUp 0.5s ease 0.1s both' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16, flexShrink:0 }}>
+        <div className="glass-card" style={{ flex:'1 1 220px', minWidth:200, padding:20, animation:'fadeUp 0.5s ease 0.1s both' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
             <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', display:'flex', alignItems:'center', gap:8 }}><Users size={12}/> Players</h3>
             <span style={{ fontFamily:'DM Mono', fontSize:11, color:'var(--text-dim)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--noir-border)', borderRadius:6, padding:'2px 10px' }}>{playersList.length} joined</span>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:6, overflowY:'auto', flex:1, minHeight:0 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
             {playersList.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.03)', border:'1px solid var(--noir-border)', borderRadius:10, padding:'9px 12px', flexShrink:0, opacity:visiblePlayers.has(p.id)?1:0, transform:visiblePlayers.has(p.id)?'translateX(0)':'translateX(-12px)', transition:'opacity 0.35s ease, transform 0.35s ease' }}>
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.03)', border:'1px solid var(--noir-border)', borderRadius:10, padding:'9px 12px', opacity:visiblePlayers.has(p.id)?1:0, transform:visiblePlayers.has(p.id)?'translateX(0)':'translateX(-12px)', transition:'opacity 0.35s ease, transform 0.35s ease' }}>
                 <Avatar avatarId={p.avatarId} size={30}/>
                 <span style={{ fontSize:14, color:'var(--text-bright)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{p.name}</span>
                 {p.id===game.hostId&&<div style={{ animation:'skullIconFloat 4s ease-in-out infinite' }}><Crown size={11} color="var(--gold)" style={{ flexShrink:0 }}/></div>}
@@ -924,9 +903,9 @@ function Lobby({ game, isHost, user, onLeave }) {
         </div>
 
         {/* Role setup */}
-        <div className="glass-card lobby-col-roles" style={{ padding:20, animation:'fadeUp 0.5s ease 0.2s both' }}>
-          <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:14, flexShrink:0 }}>Role Setup</h3>
-          <div style={{ display:'flex', flexDirection:'column', gap:8, overflowY:'auto', flex:1, minHeight:0, paddingRight:2 }}>
+        <div className="glass-card" style={{ flex:'1 1 260px', minWidth:240, padding:20, animation:'fadeUp 0.5s ease 0.2s both' }}>
+          <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:14 }}>Role Setup</h3>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {roleCategories.map(cat => {
               const isOpen=openCategory===cat.id;
               const activeInCat=cat.roles.filter(r=>game.settings[r.role]>0).length;
@@ -957,17 +936,15 @@ function Lobby({ game, isHost, user, onLeave }) {
               );
             })}
           </div>
-          <div style={{ height:1, background:'var(--noir-border)', margin:'16px 0', flexShrink:0 }}/>
-          <div style={{ flexShrink:0 }}>
-            {isHost
-              ? <button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'13px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>
-              : <div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Awaiting host</span></div>
-            }
-          </div>
+          <div style={{ height:1, background:'var(--noir-border)', margin:'16px 0' }}/>
+          {isHost
+            ? <button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'13px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>
+            : <div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Awaiting host</span></div>
+          }
         </div>
 
-        {/* Lobby chat — takes remaining width on desktop, fixed height on mobile */}
-        <div className="glass-card lobby-col-chat" style={{ padding:0, animation:'fadeUp 0.5s ease 0.3s both' }}>
+        {/* Lobby chat */}
+        <div className="glass-card" style={{ flex:'1 1 260px', minWidth:240, padding:0, overflow:'hidden', display:'flex', flexDirection:'column', minHeight:380, animation:'fadeUp 0.5s ease 0.3s both' }}>
           <LobbyChatBox game={game} user={user} />
         </div>
 
