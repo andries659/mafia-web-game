@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  User, Skull, Cross, Search, Moon, Sun, 
+  User, Skull, Cross, Search, Moon, Sun, Eye, EyeOff, Swords, HeartPulse, ShieldAlert, VolumeX, Bug, Flame, BookOpen, Scale, Binoculars, FlaskConical, Hammer,
   MessageSquare, Users, Crown, Check, Shield, AlertCircle, Target, Zap, Ghost, Sword, ChevronDown
 } from 'lucide-react';
+import {
+	TbPrison
+} from 'react-icons/tb';
 import { initializeApp } from "firebase/app";
 import { 
   getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged 
@@ -29,6 +32,22 @@ const getGameRef = (gameCode) => doc(db, 'artifacts', appId, 'public', 'data', '
 
 const MAFIA_ROLES = ['mafia', 'godfather', 'framer', 'kidnapper', 'janitor'];
 const isMafiaRole = (role) => MAFIA_ROLES.includes(role);
+const NEUTRAL_ROLES = ['jester', 'arsonist', 'blackmailer'];
+const PASSIVE_NIGHT_ROLES = ['villager', 'citizen', 'jester', 'mayor', 'medium', 'temmie', 'tiebreaker', 'survivor', 'super_survivor', 'mystic', 'watcher'];
+const ROLE_NAMES = [
+  'villager', 'citizen', 'temmie', 'tiebreaker', 'survivor', 'super_survivor', 'friendzoner', 'cricket',
+  'nurse', 'super_doctor', 'meister', 'revenger', 'terrorist', 'warden', 'wizard', 'binoculars',
+  'super_binoculars', 'watcher', 'mystic', 'mortician', 'mafia', 'godfather', 'framer', 'kidnapper',
+  'janitor', 'doctor', 'sheriff', 'detective', 'tracker', 'lookout', 'spy', 'vigilante', 'bodyguard',
+  'escort', 'mayor', 'veteran', 'medium', 'jester', 'arsonist', 'blackmailer'
+];
+const NO_VISIT_ACTIONS = new Set(['skip', 'sleep', 'alert', 'ignite', 'spy_passive', 'watcher_passive']);
+const isNeutralRole = (role) => NEUTRAL_ROLES.includes(role);
+const getRoleTeam = (role) => isMafiaRole(role) ? 'BADDIE' : isNeutralRole(role) ? 'NEUTRIE' : 'GOODIE';
+const getActionTargets = (action) => Array.isArray(action) ? action.filter(Boolean) : (action && !NO_VISIT_ACTIONS.has(action) ? [action] : []);
+const isActiveNightAction = (action) => getActionTargets(action).length > 0 || ['alert', 'ignite'].includes(action);
+const getNurseSelfHealLimit = (playerCount) => Math.max(1, Math.min(3, Math.ceil(playerCount / 12)));
+const getTerroristKillLimit = (playerCount) => Math.max(1, Math.min(3, Math.ceil(playerCount / 10)));
 
 const AVATARS = [
   { id: 'fedora',    label: 'The Don',       bg: '#1a0a0a', accent: '#C0141C', symbol: '🎩', initials: 'TD' },
@@ -145,10 +164,10 @@ const GlobalStyles = () => (
       flex-direction: column;
       gap: 8px;
       min-height: 0;
-      max-height: 420px;
+      max-height: 640px;
     }
     @media (max-width: 768px) {
-      .chat-scroll-area { max-height: 300px; }
+      .chat-scroll-area { max-height: 420px; }
     }
     @keyframes typingDot {
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
@@ -203,7 +222,13 @@ const GlobalStyles = () => (
     .night-fog-1 { position: fixed; bottom: 0; left: -10%; right: -10%; height: 260px; background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(60,0,80,0.12) 0%, transparent 70%); pointer-events: none; z-index: 0; animation: fogDrift 14s ease-in-out infinite; }
     .night-fog-2 { position: fixed; bottom: 0; left: -15%; right: -15%; height: 180px; background: radial-gradient(ellipse 70% 50% at 40% 100%, rgba(20,0,60,0.1) 0%, transparent 70%); pointer-events: none; z-index: 0; animation: fogDrift2 18s ease-in-out infinite; }
     .phase-bar { animation: phaseBannerSlide 0.45s cubic-bezier(0.22,1,0.36,1) both; }
-    @media (max-width: 768px) { .desktop-sidebar { display: none !important; } .fab { display: flex; } .drawer-overlay.open { display: block; } }
+
+    .lobby-desktop-layout {
+      grid-template-columns: minmax(260px, 0.95fr) minmax(380px, 1.2fr) minmax(340px, 1.05fr);
+      min-height: min(760px, calc(100vh - 170px));
+    }
+
+    @media (max-width: 768px) { .desktop-sidebar { display: none !important; } .fab { display: flex; } .drawer-overlay.open { display: block; } .lobby-desktop-layout { grid-template-columns: 1fr; min-height: auto; } }
     @media (min-width: 769px) { .fab { display: none !important; } }
   `}</style>
 );
@@ -266,7 +291,7 @@ export default function MafiaGame() {
     try {
       await setDoc(getGameRef(code), {
         code, hostId: user.uid, status: 'lobby', phaseNum: 1, winner: null,
-        settings: { mafia:0,godfather:0,framer:0,kidnapper:0,janitor:0,doctor:0,detective:0,sheriff:0,vigilante:0,bodyguard:0,jester:0,escort:0,mayor:0,tracker:0,lookout:0,veteran:0,blackmailer:0,spy:0,arsonist:0,medium:0 },
+        settings: { mafia:0,godfather:0,framer:0,kidnapper:0,janitor:0,doctor:0,detective:0,sheriff:0,vigilante:0,bodyguard:0,jester:0,escort:0,mayor:0,tracker:0,lookout:0,veteran:0,blackmailer:0,spy:0,arsonist:0,medium:0,warden:0,citizen:0,temmie:0,tiebreaker:0,survivor:0,super_survivor:0,friendzoner:0,cricket:0,nurse:0,super_doctor:0,meister:0,revenger:0,terrorist:0,wizard:0,binoculars:0,super_binoculars:0,watcher:0,mystic:0,mortician:0 },
         players: { [user.uid]: { id:user.uid, name:playerName, avatarId:selectedAvatar, role:'unassigned', isAlive:true, hasUsedAbility:false } },
         actions:{}, guesses:{}, messages:[], mafiaMessages:[], wills:{}, dawnSeen:{}, logs:[], investigations:{}, lobbyChatMessages:[], lobbyTyping:{}, typing:{}, mafiaTyping:{}
       });
@@ -498,7 +523,14 @@ function GameRoom({ user, gameCode, onLeave }) {
   useEffect(() => {
     if (!game || !user || game.hostId !== user.uid) return;
     if (['lobby','game_over'].includes(game.status)) return;
-    const alivePlayers = Object.values(game.players).filter(p => p.isAlive);
+    const alivePlayers = Object.values(game.players).filter(p => (
+      p.isAlive || (
+        game.status === 'night' &&
+        p.revengeReady &&
+        p.revengePhase === game.phaseNum &&
+        ['revenger', 'terrorist'].includes(p.role)
+      )
+    ));
     const actionsCount = Object.keys(game.actions || {}).length;
     if (actionsCount > 0 && actionsCount === alivePlayers.length && !transitioning.current) {
       transitioning.current = true;
@@ -507,11 +539,53 @@ function GameRoom({ user, gameCode, onLeave }) {
   }, [game?.actions, game?.status, user?.uid]);
 
   const handlePhaseTransition = async (currentGame, alivePlayers) => {
-    const { status, actions, players, phaseNum, guesses = {} } = currentGame;
+    const { status, actions = {}, players, phaseNum, guesses = {} } = currentGame;
+    const playerCount = Object.keys(players).length;
     let updates = { actions: {} };
     let newLogs = [];
     let updatedPlayers = Object.fromEntries(Object.entries(players).map(([k,v]) => [k,{...v}]));
     let newWinner = null;
+
+    const queueRevenge = (uid) => {
+      const player = updatedPlayers[uid];
+      if (!player || player.revengeReady) return;
+      player.revengeReady = true;
+      player.revengePhase = phaseNum + 1;
+      player.revengeKills = player.role === 'terrorist' ? getTerroristKillLimit(playerCount) : 1;
+      newLogs.push(`${player.name}'s ghost will have its revenge tonight.`);
+    };
+
+    const clearRevenge = (uid) => {
+      if (!updatedPlayers[uid]) return;
+      updatedPlayers[uid].revengeReady = false;
+      updatedPlayers[uid].revengeKills = 0;
+      updatedPlayers[uid].revengePhase = null;
+    };
+
+    const tryKillPlayer = (targetId, reason, options = {}) => {
+      const target = updatedPlayers[targetId];
+      if (!target?.isAlive) return false;
+      const { nightAttack = false, lynch = false, bypassSurvival = false } = options;
+      if (!bypassSurvival && target.role === 'super_survivor') {
+        const savesUsed = Number(target.savesUsed || 0);
+        if (savesUsed < 2) {
+          target.savesUsed = savesUsed + 1;
+          newLogs.push(`${target.name} survived ${reason}. (${2 - target.savesUsed} saves left)`);
+          return false;
+        }
+      }
+      if (!bypassSurvival && nightAttack && target.role === 'survivor' && !target.hasUsedAbility) {
+        target.hasUsedAbility = true;
+        target.bleeding = true;
+        target.bleedPhase = phaseNum + 1;
+        newLogs.push(`${target.name} barely survived ${reason}, but will bleed out tomorrow night if not healed.`);
+        return false;
+      }
+      target.isAlive = false;
+      if (target.role === 'terrorist') queueRevenge(targetId);
+      if (target.role === 'revenger' && lynch) queueRevenge(targetId);
+      return true;
+    };
 
     if (status === 'role_reveal') {
       updates.status = 'night'; updates.actions = {};
@@ -522,12 +596,12 @@ function GameRoom({ user, gameCode, onLeave }) {
         const target = updatedPlayers[targetId]; const guesser = updatedPlayers[guesserId];
         if (!target?.isAlive || !guesser?.isAlive) return;
         if (target.role === guessedRole) {
-          updatedPlayers[targetId].isAlive = false;
-          newLogs.push(`${guesser.name} correctly identified ${target.name} as ${guessedRole}. ${target.name} is executed.`);
-          if (target.role === 'jester') { newWinner = 'jester'; newLogs.push(`The Jester's gambit succeeds!`); }
+          if (tryKillPlayer(targetId, 'the accusation')) {
+            newLogs.push(`${guesser.name} correctly identified ${target.name} as ${guessedRole}. ${target.name} is executed.`);
+            if (target.role === 'jester') { newWinner = 'jester'; newLogs.push(`The Jester's gambit succeeds!`); }
+          }
         } else {
-          updatedPlayers[guesserId].isAlive = false;
-          newLogs.push(`${guesser.name} guessed wrong — and paid with their life.`);
+          if (tryKillPlayer(guesserId, 'a failed accusation')) newLogs.push(`${guesser.name} guessed wrong and paid with their life.`);
         }
       });
       newWinner = newWinner || checkWinCondition(updatedPlayers);
@@ -536,25 +610,72 @@ function GameRoom({ user, gameCode, onLeave }) {
         await updateDoc(getGameRef(gameCode), updates); return;
       }
       let mafiaTargets={}, docTarget=null, bgTarget=null, vigTarget=null;
-      let blockedPlayers=new Set(), framedPlayers=new Set();
+      let blockedPlayers=new Set(), framedPlayers=new Set(), protectedTargets=new Set(), veteranAlertedUids=new Set();
+      let bodyguardAssignments=new Map();
       let doused=new Set(Object.keys(players).filter(k=>players[k].doused));
       let veteranAlerted=false, janitorKill=null;
-      Object.entries(actions).forEach(([uid,action]) => {
-        if (action==='skip'||action==='sleep'||!updatedPlayers[uid]?.isAlive) return;
-        const role=players[uid].role;
-        if (role==='escort'||role==='kidnapper') { blockedPlayers.add(action); if(role==='kidnapper') newLogs.push(`${players[action]?.name} was held captive through the night.`); }
+      const actionEntries = Object.entries(actions);
+      const visitEntries = actionEntries.flatMap(([uid, action]) => getActionTargets(action).map(target => ({ uid, target, action, role: players[uid]?.role })));
+      const actorCanAct = (uid) => updatedPlayers[uid]?.isAlive || (
+        updatedPlayers[uid]?.revengeReady &&
+        updatedPlayers[uid]?.revengePhase === phaseNum &&
+        ['revenger', 'terrorist'].includes(updatedPlayers[uid]?.role)
+      );
+      visitEntries.forEach(({ uid, target, role }) => {
+        if (!actorCanAct(uid)) return;
+        if (['escort', 'kidnapper', 'cricket'].includes(role) || (role === 'warden' && !players[uid]?.hasUsedAbility)) {
+          blockedPlayers.add(target);
+          if(role==='kidnapper') newLogs.push(`${players[target]?.name} was held captive through the night.`);
+          if(role==='warden') newLogs.push(`${players[target]?.name} was locked away by the Warden.`);
+        }
       });
-      Object.entries(actions).forEach(([uid,action]) => {
-        if (action==='skip'||action==='sleep'||action==='alert'||action==='ignite'||action==='spy_passive') return;
-        if (blockedPlayers.has(uid)) return;
+      actionEntries.forEach(([uid,action]) => {
+        if (!actorCanAct(uid) || blockedPlayers.has(uid)) return;
         const role=players[uid].role;
-        if (role==='veteran'&&action==='alert'&&!players[uid].hasUsedAbility) { veteranAlerted=true; updatedPlayers[uid].hasUsedAbility=true; }
-        if (role==='framer') framedPlayers.add(action);
-        if (role==='arsonist'&&action!=='ignite') { doused.add(action); updatedPlayers[action]={...updatedPlayers[action],doused:true}; }
+        const targets=getActionTargets(action);
+        if (role==='veteran'&&action==='alert'&&!players[uid].hasUsedAbility) { veteranAlerted=true; veteranAlertedUids.add(uid); updatedPlayers[uid].hasUsedAbility=true; }
+        if (role==='framer') targets.forEach(target => framedPlayers.add(target));
+        if (role==='arsonist') targets.forEach(target => { doused.add(target); updatedPlayers[target] = { ...updatedPlayers[target], doused: true }; });
+        if (role==='doctor'&&targets[0]) protectedTargets.add(targets[0]);
+        if (role==='nurse'&&targets[0]) {
+          const target=targets[0];
+          if (target===uid) {
+            const used=Number(players[uid].selfHealsUsed||0);
+            const limit=getNurseSelfHealLimit(playerCount);
+            if (used>=limit) newLogs.push(`${players[uid].name} tried to self-heal, but had no self-heals left.`);
+            else { updatedPlayers[uid].selfHealsUsed=used+1; protectedTargets.add(target); }
+          } else protectedTargets.add(target);
+        }
+        if (role==='super_doctor') targets.filter(target=>target!==uid).slice(0,2).forEach(target=>protectedTargets.add(target));
+        if (role==='bodyguard'&&targets[0]) { bgTarget=targets[0]; bodyguardAssignments.set(targets[0], uid); }
+        if (role==='warden'&&targets[0]&&!players[uid].hasUsedAbility) {
+          const targetRole=players[targets[0]]?.role;
+          const decoys=ROLE_NAMES.filter(r=>r!==targetRole).sort(()=>Math.random()-0.5).slice(0,2);
+          updates[`wardenJails.${uid}`]={target:targets[0],phase:phaseNum,role:targetRole};
+          updates[`investigations.${uid}`]={target:targets[0],isMafia:isMafiaRole(targetRole),result:`Possible roles: ${[targetRole,...decoys].sort(()=>Math.random()-0.5).join(', ')}`,phase:phaseNum};
+        }
+        if (role==='blackmailer'&&targets[0]) updates[`blackmailed`]={target:targets[0],phase:phaseNum};
+        if (role==='friendzoner'&&targets[0]) updates[`silenced`]={target:targets[0],phase:phaseNum,blockVote:true};
       });
+      Object.entries(updatedPlayers).forEach(([uid, player]) => {
+        if (!player.bleeding || Number(player.bleedPhase || 0) > phaseNum || !player.isAlive) return;
+        if (protectedTargets.has(uid)) {
+          player.bleeding=false;
+          player.bleedPhase=null;
+          newLogs.push(`${player.name}'s bleeding was stopped by a healer.`);
+        } else if (tryKillPlayer(uid, 'untreated wounds', { bypassSurvival: true })) {
+          player.bleeding=false;
+          player.bleedPhase=null;
+          newLogs.push(`${player.name} bled out before dawn.`);
+        }
+      });
+
       if (veteranAlerted) {
-        const vetUid=Object.keys(players).find(k=>players[k].role==='veteran');
-        Object.entries(actions).forEach(([uid,action]) => { if(action===vetUid&&uid!==vetUid&&updatedPlayers[uid]?.isAlive){ updatedPlayers[uid].isAlive=false; newLogs.push(`${players[uid].name} was shot by the Veteran.`); } });
+        veteranAlertedUids.forEach(vetUid => {
+          visitEntries.forEach(({ uid, target }) => {
+            if(target===vetUid&&uid!==vetUid&&updatedPlayers[uid]?.isAlive&&tryKillPlayer(uid, 'the Veteran alert', { nightAttack: true })) newLogs.push(`${players[uid].name} was shot by the Veteran.`);
+          });
+        });
       }
       Object.keys(players).filter(k=>players[k].role==='arsonist').forEach(arsonistUid => {
         if (actions[arsonistUid]==='ignite'&&!blockedPlayers.has(arsonistUid)&&updatedPlayers[arsonistUid]?.isAlive) {
@@ -603,7 +724,7 @@ function GameRoom({ user, gameCode, onLeave }) {
       });
       if (newLogs.length===0) newLogs.push("The night passes without incident. The city breathes.");
       const nightDeaths=Object.keys(updatedPlayers).filter(uid=>!updatedPlayers[uid].isAlive&&players[uid].isAlive);
-      updates.status='day'; updates.players=updatedPlayers; updates.logs=arrayUnion(...newLogs); updates.nightDeaths=nightDeaths; updates.dawnSeen={}; updates.guesses={};
+      updates.status='day'; updates.players=updatedPlayers; updates.logs = arrayUnion(...newLogs); updates.nightDeaths=nightDeaths; updates.dawnSeen={}; updates.guesses={};
       newWinner=checkWinCondition(updatedPlayers);
     } else if (status==='day') {
       let votes={};
@@ -668,7 +789,7 @@ function GameRoom({ user, gameCode, onLeave }) {
   };
 
   return (
-    <div style={{ maxWidth:1200, margin:'0 auto', minHeight:'100vh', display:'flex', flexDirection:'column' }}>
+    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column' }}>
       <header className="phase-bar" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 20px', position:'sticky', top:0, zIndex:100, backdropFilter:'blur(12px)', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
           <div className="font-mono-custom" style={{ background:'rgba(255,255,255,0.04)', border:'1px solid var(--noir-border)', borderRadius:8, padding:'5px 14px', fontSize:14, letterSpacing:'0.3em', color:'var(--text-bright)', fontWeight:500 }}>{game.code}</div>
@@ -797,9 +918,9 @@ function LobbyChatBox({ game, user }) {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:0, flex:1 }}>
-      <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--noir-border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
-        <MessageSquare size={11} color="var(--text-dim)"/>
-        <span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)' }}>Lobby Chat</span>
+      <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--noir-border)', display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
+        <MessageSquare size={14} color="var(--text-mid)"/>
+        <span style={{ fontFamily:'DM Mono', fontSize:13, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-mid)' }}>Lobby Chat</span>
       </div>
       <div ref={scrollRef} className="chat-scroll-area">
         {messages.length === 0 && (
@@ -811,7 +932,7 @@ function LobbyChatBox({ game, user }) {
             <div key={i} style={{ display:'flex', flexDirection:'row', alignItems:'flex-end', gap:6, justifyContent: isMe ? 'flex-end' : 'flex-start', animation: i >= messages.length - 3 ? `${isMe?'bubbleInRight':'bubbleInLeft'} 0.25s ease both` : 'none' }}>
               {!isMe && <Avatar avatarId={m.senderAvatarId} size={26} style={{ flexShrink:0, marginBottom:2 }}/>}
               <div style={{ display:'flex', flexDirection:'column', alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth:'78%' }}>
-                <span style={{ fontFamily:'DM Mono', fontSize:9, letterSpacing:'0.05em', color:'var(--text-dim)', marginBottom:3 }}>{m.senderName}</span>
+                <span style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.03em', color:'var(--text-mid)', marginBottom:3 }}>{m.senderName}</span>
                 <div className={isMe ? 'chat-me' : 'chat-other'} style={{ padding:'7px 12px', borderRadius:10, fontSize:14, color:'var(--text-bright)', wordBreak:'break-word', lineHeight:1.5 }}>{m.text}</div>
               </div>
               {isMe && <Avatar avatarId={m.senderAvatarId} size={26} style={{ flexShrink:0, marginBottom:2 }}/>}
@@ -828,16 +949,16 @@ function LobbyChatBox({ game, user }) {
                 <span key={i} style={{ width:4, height:4, borderRadius:'50%', background:'var(--text-dim)', display:'inline-block', animation:`typingDot 1.2s ease-in-out ${i*0.2}s infinite` }}/>
               ))}
             </span>
-            <span style={{ fontFamily:'DM Mono', fontSize:9, letterSpacing:'0.06em', color:'var(--text-dim)' }}>{typingLabel}</span>
+            <span style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.04em', color:'var(--text-mid)' }}>{typingLabel}</span>
           </>
         )}
       </div>
-      <form onSubmit={handleSend} style={{ padding:'10px 12px', borderTop:'1px solid var(--noir-border)', display:'flex', gap:8, flexShrink:0 }}>
+      <form onSubmit={handleSend} style={{ padding:'12px 14px', borderTop:'1px solid var(--noir-border)', display:'flex', gap:10, flexShrink:0 }}>
         <input type="text" value={msg} onChange={e => { setMsg(e.target.value); handleTyping(); }}
           placeholder="Say something…" className="noir-input"
-          style={{ flex:1, padding:'8px 12px', borderRadius:8, fontSize:14 }}
+          style={{ flex:1, padding:'10px 13px', borderRadius:8, fontSize:14 }}
         />
-        <button type="submit" disabled={!msg.trim()} style={{ padding:'8px 14px', borderRadius:8, background:msg.trim()?'var(--blood)':'rgba(255,255,255,0.04)', border:`1px solid ${msg.trim()?'transparent':'var(--noir-border)'}`, color:msg.trim()?'white':'var(--text-dim)', cursor:msg.trim()?'pointer':'not-allowed', transition:'all 0.15s', fontSize:13 }}>↑</button>
+        <button type="submit" disabled={!msg.trim()} style={{ padding:'10px 15px', borderRadius:8, background:msg.trim()?'var(--blood)':'rgba(255,255,255,0.04)', border:`1px solid ${msg.trim()?'transparent':'var(--noir-border)'}`, color:msg.trim()?'white':'var(--text-dim)', cursor:msg.trim()?'pointer':'not-allowed', transition:'all 0.15s', fontSize:13 }}>↑</button>
       </form>
     </div>
   );
@@ -850,9 +971,13 @@ function Lobby({ game, isHost, user, onLeave }) {
   useEffect(() => { playersList.forEach((p,idx) => { setTimeout(() => setVisiblePlayers(prev => new Set([...prev,p.id])), idx*80); }); }, [playersList.length]);
 
   const handleSettingsChange = async (role, increment) => {
-    const newCount = game.settings[role] + increment;
-    if (newCount < 0) return;
-    await updateDoc(getGameRef(game.code), { [`settings.${role}`]: newCount });
+	const current = Number(game.settings?.[role] ?? 0);
+	const newCount = current + increment;
+	if (newCount < 0) return;
+
+	await updateDoc(getGameRef(game.code), {
+		[`settings.${role}`]: newCount
+	});
   };
   const handleStartGame = async () => {
     const totalSpecial = Object.values(game.settings).reduce((a,b)=>a+b,0);
@@ -861,22 +986,76 @@ function Lobby({ game, isHost, user, onLeave }) {
     Object.entries(game.settings).forEach(([role,count]) => { for(let i=0;i<count;i++) roles.push(role); });
     while (roles.length < playersList.length) roles.push('villager');
     roles.sort(()=>Math.random()-0.5);
-    let updatedPlayers={...game.players};
+    let updatedPlayers = { ...game.players };
     playersList.forEach((p,idx) => { updatedPlayers[p.id].role=roles[idx]; });
     await updateDoc(getGameRef(game.code), { status:'role_reveal', players:updatedPlayers, lobbyChatMessages:[], messages:[], lobbyTyping:{}, typing:{}, mafiaTyping:{} });
   };
 
   const roleCategories = [
-    { id:'mafia', label:'Mafia Roles', color:'var(--blood)', icon:<Skull size={13} color="var(--blood)"/>, desc:'Work together in secret to eliminate the town at night.',
-      roles:[{role:'mafia',label:'Mafia',icon:<Skull size={15} color="var(--blood)"/>,color:'var(--blood)',hint:'Kill one townsfolk each night.'},{role:'godfather',label:'Godfather',icon:<Skull size={15} color="#8B0000"/>,color:'#8B0000',hint:'Appears innocent to detectives.'},{role:'framer',label:'Framer',icon:<Sword size={15} color="var(--blood)"/>,color:'var(--blood)',hint:'Makes an innocent appear as mafia.'},{role:'kidnapper',label:'Kidnapper',icon:<Moon size={15} color="var(--blood)"/>,color:'var(--blood)',hint:"Blocks a player's night action."},{role:'janitor',label:'Janitor',icon:<Skull size={15} color="var(--blood)"/>,color:'var(--blood)',hint:"Hides the role of the kill victim."}]},
-    { id:'town', label:'Villager Roles', color:'var(--sapphire)', icon:<Users size={13} color="var(--sapphire)"/>, desc:'Identify and eliminate the mafia through votes and investigation.',
-      roles:[{role:'doctor',label:'Doctor',icon:<Cross size={15} color="var(--emerald)"/>,color:'var(--emerald)',hint:'Protect one player each night.'},{role:'sheriff',label:'Sheriff',icon:<Search size={15} color="var(--emerald)"/>,color:'var(--emerald)',hint:"Learns exact role of target."},{role:'detective',label:'Detective',icon:<Search size={15} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Learns if target is suspicious.'},{role:'tracker',label:'Tracker',icon:<Target size={15} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Sees who a target visits.'},{role:'lookout',label:'Lookout',icon:<Moon size={15} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Sees who visits a chosen player.'},{role:'spy',label:'Spy',icon:<Search size={15} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Passively sees all mafia actions.'},{role:'vigilante',label:'Vigilante',icon:<Zap size={15} color="var(--orange)"/>,color:'var(--orange)',hint:'One-shot kill a suspect.'},{role:'bodyguard',label:'Bodyguard',icon:<Shield size={15} color="var(--amber)"/>,color:'var(--amber)',hint:'Dies protecting a target.'},{role:'escort',label:'Escort',icon:<Ghost size={15} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:"Blocks a player's night action."},{role:'mayor',label:'Mayor',icon:<Crown size={15} color="var(--gold)"/>,color:'var(--gold)',hint:'Vote counts triple.'},{role:'veteran',label:'Veteran',icon:<Shield size={15} color="var(--gold)"/>,color:'var(--gold)',hint:'Once: alert and kill all visitors.'},{role:'medium',label:'Medium',icon:<Ghost size={15} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:'Can talk to dead players.'}]},
-    { id:'neutral', label:'Neutral Roles', color:'var(--amethyst)', icon:<Ghost size={13} color="var(--amethyst)"/>, desc:'Play by their own rules with unique win conditions.',
-      roles:[{role:'jester',label:'Jester',icon:<Ghost size={15} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:'Win by tricking the town into lynching you.'},{role:'arsonist',label:'Arsonist',icon:<Zap size={15} color="var(--orange)"/>,color:'var(--orange)',hint:'Douse players then ignite.'},{role:'blackmailer',label:'Blackmailer',icon:<Skull size={15} color="var(--blood)"/>,color:'var(--blood)',hint:'Silence a player each night.'}]},
+    { id:'mafia', label:'Mafia Roles', color:'var(--blood)', icon:<Skull size={16} color="var(--blood)"/>, desc:'Work together in secret to eliminate the town at night.',
+      roles:[
+        {role:'mafia',label:'Mafia',icon:<Skull size={18} color="var(--blood)"/>,color:'var(--blood)',hint:'Kill one townsfolk each night.'},
+        {role:'godfather',label:'Godfather',icon:<Skull size={18} color="#8B0000"/>,color:'#8B0000',hint:'Appears innocent to detectives.'},
+        {role:'framer',label:'Framer',icon:<Sword size={18} color="var(--blood)"/>,color:'var(--blood)',hint:'Makes an innocent appear as mafia.'},
+        {role:'kidnapper',label:'Kidnapper',icon:<Moon size={18} color="var(--blood)"/>,color:'var(--blood)',hint:"Blocks a player's night action."},
+        {role:'janitor',label:'Janitor',icon:<Skull size={18} color="var(--blood)"/>,color:'var(--blood)',hint:"Hides the role of the kill victim."},
+      ]},
+    { id:'town', label:'Villager Roles', color:'var(--sapphire)', icon:<Users size={16} color="var(--sapphire)"/>, desc:'Identify and eliminate the mafia through votes and investigation.',
+      roles:[
+        // ── Townies ──
+        {role:'citizen',label:'Citizen',icon:<User size={18} color="var(--text-mid)"/>,color:'var(--text-mid)',hint:'No special ability. Pure townsfolk.'},
+        {role:'temmie',label:'Temmie',icon:<Zap size={18} color="#FFD700"/>,color:'#FFD700',hint:'Reveal your role during the day to gain two votes.'},
+        {role:'tiebreaker',label:'Tiebreaker',icon:<Scale size={18} color="#A0C4FF"/>,color:'#A0C4FF',hint:'When votes are tied, your side wins the tiebreak.'},
+        {role:'survivor',label:'Survivor',icon:<HeartPulse size={18} color="var(--emerald)"/>,color:'var(--emerald)',hint:'Survives one night attack, but bleeds out — dies the following night if not healed.'},
+        {role:'super_survivor',label:'Super Survivor',icon:<Shield size={18} color="var(--emerald)"/>,color:'var(--emerald)',hint:'Survives any attack or execution twice. Dies normally after the second save.'},
+        {role:'friendzoner',label:'Friendzoner',icon:<VolumeX size={18} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:'At night, silence someone — they cannot talk or vote the next day.'},
+        {role:'cricket',label:'Cricket',icon:<Bug size={18} color="#6BCB77"/>,color:'#6BCB77',hint:'At night, stare at a player to role-block them.'},
+        // ── Healers ──
+        {role:'nurse',label:'Nurse',icon:<Cross size={18} color="var(--emerald)"/>,color:'var(--emerald)',hint:'Heal one player each night. Limited self-heals based on player count.'},
+        {role:'super_doctor',label:'Doctor',icon:<HeartPulse size={18} color="#5EFFD8"/>,color:'#5EFFD8',hint:'Heal two separate players each night. No self-heals.'},
+        {role:'meister',label:'Meister',icon:<Hammer size={18} color="#C9A84C"/>,color:'#C9A84C',hint:'If you voted out the executed player, you may resurrect anyone else the next night.'},
+        // ── Bashers ──
+        {role:'sheriff',label:'Sheriff',icon:<Search size={18} color="var(--emerald)"/>,color:'var(--emerald)',hint:'Shoot at night: kills Baddies/Neutries, but bullet bounces back if target is a Goodie.'},
+        {role:'revenger',label:'Revenger',icon:<Flame size={18} color="var(--orange)"/>,color:'var(--orange)',hint:'If voted out, you may kill one person as a vengeful ghost that night.'},
+        {role:'terrorist',label:'Terrorist',icon:<Zap size={18} color="var(--blood)"/>,color:'var(--blood)',hint:'If killed or executed, haunt as a ghost and kill — number of kills scales with player count.'},
+        {role:'veteran',label:'Veteran',icon:<Shield size={18} color="var(--gold)"/>,color:'var(--gold)',hint:'Alert at night: any visitor dies. Number of alerts scales with player count.'},
+        {role:'warden',label:'Warden',icon:<TbPrison size={18} color="#4c6a92"/>,color:'#4c6a92',hint:'Imprison someone each night (role-blocked). See their role among 3 options. Execute them — but lose your ability if they were a Goodie.'},
+        // ── Investigators ──
+        {role:'wizard',label:'Wizard',icon:<FlaskConical size={18} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:'Investigate a player at night: learn if they are Goodie, Baddie, or Neutrie.'},
+        {role:'detective',label:'Detective',icon:<Search size={18} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Learns if target is suspicious.'},
+        {role:'binoculars',label:'Binoculars',icon:<Eye size={18} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Spy on a player: know if they used an active ability that night.'},
+        {role:'super_binoculars',label:'Super Binoculars',icon:<EyeOff size={18} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Spy on a player: know if and who they used their active ability on.'},
+        {role:'watcher',label:'Watcher',icon:<BookOpen size={18} color="#A0C4FF"/>,color:'#A0C4FF',hint:'Each night, receive a list of all roles that were alive the previous day.'},
+        {role:'mystic',label:'Mystic',icon:<Ghost size={18} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:'Description revealed after a Narrated Mafia game has been played with this role.'},
+        {role:'mortician',label:'Mortician',icon:<Search size={18} color="#9E9A94"/>,color:'#9E9A94',hint:'During the day, investigate a dead body to learn their role. Uses scale with player count.'},
+        // ── Legacy ──
+        {role:'tracker',label:'Tracker',icon:<Target size={18} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Sees who a target visits.'},
+        {role:'lookout',label:'Lookout',icon:<Moon size={18} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Sees who visits a chosen player.'},
+        {role:'spy',label:'Spy',icon:<Search size={18} color="var(--sapphire)"/>,color:'var(--sapphire)',hint:'Passively sees all mafia actions.'},
+        {role:'vigilante',label:'Vigilante',icon:<Swords size={18} color="var(--orange)"/>,color:'var(--orange)',hint:'One-shot kill a suspect.'},
+        {role:'bodyguard',label:'Bodyguard',icon:<Shield size={18} color="var(--amber)"/>,color:'var(--amber)',hint:'Dies protecting a target.'},
+        {role:'escort',label:'Escort',icon:<Ghost size={18} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:"Blocks a player's night action."},
+        {role:'mayor',label:'Mayor',icon:<Crown size={18} color="var(--gold)"/>,color:'var(--gold)',hint:'Vote counts triple.'},
+        {role:'medium',label:'Medium',icon:<Ghost size={18} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:'Can talk to dead players.'},
+        {role:'doctor',label:'Doctor (legacy)',icon:<Cross size={18} color="var(--emerald)"/>,color:'var(--emerald)',hint:'Protect one player each night.'},
+      ]},
+    { id:'neutral', label:'Neutral Roles', color:'var(--amethyst)', icon:<Ghost size={16} color="var(--amethyst)"/>, desc:'Play by their own rules with unique win conditions.',
+      roles:[
+        {role:'jester',label:'Jester',icon:<Ghost size={18} color="var(--amethyst)"/>,color:'var(--amethyst)',hint:'Win by tricking the town into lynching you.'},
+        {role:'arsonist',label:'Arsonist',icon:<Flame size={18} color="var(--orange)"/>,color:'var(--orange)',hint:'Douse players then ignite.'},
+        {role:'blackmailer',label:'Blackmailer',icon:<VolumeX size={18} color="var(--blood)"/>,color:'var(--blood)',hint:'Silence a player each night.'},
+      ]},
   ];
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', gap:20, maxWidth:960, margin:'0 auto' }}>
+    <div style={{ 
+      display:'flex', 
+      flexDirection:'column', 
+      gap:24, 
+      width:'100%', 
+      minHeight:'100%',
+      padding:'0 clamp(12px, 1.8vw, 28px) 28px'
+    }}>
       <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'20px 0 0', animation:'fadeUp 0.5s ease both' }}>
         <div>
           <h2 className="font-display" style={{ fontSize:32, color:'var(--text-bright)', fontWeight:700, marginBottom:4 }}>Gathering</h2>
@@ -884,19 +1063,19 @@ function Lobby({ game, isHost, user, onLeave }) {
         </div>
         <button onClick={onLeave} className="btn-ghost" style={{ padding:'9px 20px', borderRadius:9, fontSize:13 }}>Leave Room</button>
       </div>
-      <div style={{ display:'flex', gap:16, flexWrap:'wrap', alignItems:'flex-start' }}>
+      <div className="lobby-desktop-layout" style={{ display:'grid', gap:24, alignItems:'stretch', flex:1 }}>
 
         {/* Players list */}
-        <div className="glass-card" style={{ flex:'1 1 220px', minWidth:200, padding:20, animation:'fadeUp 0.5s ease 0.1s both' }}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
-            <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', display:'flex', alignItems:'center', gap:8 }}><Users size={12}/> Players</h3>
-            <span style={{ fontFamily:'DM Mono', fontSize:11, color:'var(--text-dim)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--noir-border)', borderRadius:6, padding:'2px 10px' }}>{playersList.length} joined</span>
+        <div className="glass-card" style={{ padding:28, minWidth:0, height:'100%', animation:'fadeUp 0.5s ease 0.1s both' }}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
+            <h3 style={{ fontFamily:'DM Mono', fontSize:13, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-mid)', display:'flex', alignItems:'center', gap:8 }}><Users size={15}/> Players</h3>
+            <span style={{ fontFamily:'DM Mono', fontSize:12, color:'var(--text-mid)', background:'rgba(255,255,255,0.05)', border:'1px solid var(--noir-border)', borderRadius:6, padding:'3px 12px' }}>{playersList.length} joined</span>
           </div>
-          <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {playersList.map(p => (
-              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:10, background:'rgba(255,255,255,0.03)', border:'1px solid var(--noir-border)', borderRadius:10, padding:'9px 12px', opacity:visiblePlayers.has(p.id)?1:0, transform:visiblePlayers.has(p.id)?'translateX(0)':'translateX(-12px)', transition:'opacity 0.35s ease, transform 0.35s ease' }}>
-                <Avatar avatarId={p.avatarId} size={30}/>
-                <span style={{ fontSize:14, color:'var(--text-bright)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{p.name}</span>
+              <div key={p.id} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(255,255,255,0.03)', border:'1px solid var(--noir-border)', borderRadius:10, padding:'12px 14px', opacity:visiblePlayers.has(p.id)?1:0, transform:visiblePlayers.has(p.id)?'translateX(0)':'translateX(-12px)', transition:'opacity 0.35s ease, transform 0.35s ease' }}>
+                <Avatar avatarId={p.avatarId} size={34}/>
+                <span style={{ fontSize:15, color:'var(--text-bright)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', flex:1 }}>{p.name}</span>
                 {p.id===game.hostId&&<div style={{ animation:'skullIconFloat 4s ease-in-out infinite' }}><Crown size={11} color="var(--gold)" style={{ flexShrink:0 }}/></div>}
               </div>
             ))}
@@ -904,30 +1083,30 @@ function Lobby({ game, isHost, user, onLeave }) {
         </div>
 
         {/* Role setup */}
-        <div className="glass-card" style={{ flex:'1 1 260px', minWidth:240, padding:20, animation:'fadeUp 0.5s ease 0.2s both' }}>
-          <h3 style={{ fontFamily:'DM Mono', fontSize:11, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)', marginBottom:14 }}>Role Setup</h3>
-          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+        <div className="glass-card" style={{ padding:28, minWidth:0, height:'100%', animation:'fadeUp 0.5s ease 0.2s both' }}>
+          <h3 style={{ fontFamily:'DM Mono', fontSize:13, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--text-mid)', marginBottom:18 }}>Role Setup</h3>
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {roleCategories.map(cat => {
               const isOpen=openCategory===cat.id;
               const activeInCat=cat.roles.filter(r=>game.settings[r.role]>0).length;
               return (
                 <div key={cat.id} style={{ borderRadius:12, border:`1px solid ${isOpen?cat.color+'28':'var(--noir-border)'}`, transition:'border-color 0.25s, box-shadow 0.25s', boxShadow:isOpen?`0 0 20px ${cat.color}08`:'none' }}>
-                  <button onClick={()=>setOpenCategory(isOpen?null:cat.id)} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'11px 14px', background:isOpen?`${cat.color}0a`:'rgba(255,255,255,0.02)', border:'none', cursor:'pointer', transition:'background 0.2s', borderRadius:isOpen?'11px 11px 0 0':11 }}>
-                    <span style={{ display:'flex', alignItems:'center', gap:7, flex:1 }}>{cat.icon}<span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.12em', textTransform:'uppercase', color:isOpen?cat.color:'var(--text-mid)', transition:'color 0.2s' }}>{cat.label}</span></span>
-                    {activeInCat>0&&<span style={{ fontFamily:'DM Mono', fontSize:9, color:cat.color, background:`${cat.color}18`, border:`1px solid ${cat.color}30`, borderRadius:4, padding:'1px 6px' }}>{activeInCat} active</span>}
-                    <ChevronDown size={12} color="var(--text-dim)" style={{ transform:isOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)', flexShrink:0 }}/>
+                  <button onClick={()=>setOpenCategory(isOpen?null:cat.id)} style={{ width:'100%', display:'flex', alignItems:'center', gap:10, padding:'14px 16px', background:isOpen?`${cat.color}0a`:'rgba(255,255,255,0.02)', border:'none', cursor:'pointer', transition:'background 0.2s', borderRadius:isOpen?'11px 11px 0 0':11 }}>
+                    <span style={{ display:'flex', alignItems:'center', gap:7, flex:1 }}>{cat.icon}<span style={{ fontFamily:'DM Mono', fontSize:13, letterSpacing:'0.08em', textTransform:'uppercase', color:isOpen?cat.color:'var(--text-mid)', transition:'color 0.2s' }}>{cat.label}</span></span>
+                    {activeInCat>0&&<span style={{ fontFamily:'DM Mono', fontSize:11, color:cat.color, background:`${cat.color}18`, border:`1px solid ${cat.color}30`, borderRadius:4, padding:'2px 8px' }}>{activeInCat} active</span>}
+                    <ChevronDown size={15} color="var(--text-dim)" style={{ transform:isOpen?'rotate(180deg)':'rotate(0deg)', transition:'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)', flexShrink:0 }}/>
                   </button>
-                  <div style={{ maxHeight:isOpen?'400px':'0px', overflow:'hidden', transition:'max-height 0.3s cubic-bezier(0.4,0,0.2,1)' }}>
-                    <div style={{ padding:'4px 10px 10px' }}>
-                      <p style={{ fontFamily:'Crimson Pro', fontStyle:'italic', fontSize:12, color:'var(--text-dim)', marginBottom:8, paddingLeft:4 }}>{cat.desc}</p>
-                      <div style={{ display:'flex', flexDirection:'column', gap:4, maxHeight:'232px', overflowY:'auto', WebkitOverflowScrolling:'touch', paddingRight:2 }}>
+                  <div style={{ maxHeight:isOpen?'520px':'0px', overflow:'hidden', transition:'max-height 0.3s cubic-bezier(0.4,0,0.2,1)' }}>
+                    <div style={{ padding:'6px 12px 12px' }}>
+                      <p style={{ fontFamily:'Crimson Pro', fontStyle:'italic', fontSize:15, color:'var(--text-mid)', marginBottom:10, paddingLeft:4 }}>{cat.desc}</p>
+                      <div style={{ display:'flex', flexDirection:'column', gap:6, maxHeight:'320px', overflowY:'auto', WebkitOverflowScrolling:'touch', paddingRight:2 }}>
                         {cat.roles.map(({role,label,icon,color,hint}) => (
-                          <div key={role} style={{ borderRadius:9, padding:'9px 11px', background:game.settings[role]>0?`${color}0c`:'transparent', border:`1px solid ${game.settings[role]>0?color+'20':'transparent'}`, transition:'all 0.2s ease' }}>
+                          <div key={role} style={{ borderRadius:9, padding:'11px 12px', background:game.settings[role]>0?`${color}0c`:'transparent', border:`1px solid ${game.settings[role]>0?color+'20':'transparent'}`, transition:'all 0.2s ease' }}>
                             <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:hint?3:0 }}>
-                              <div style={{ display:'flex', alignItems:'center', gap:8 }}>{icon}<span style={{ fontSize:14, color:game.settings[role]>0?'var(--text-bright)':'var(--text-mid)', transition:'color 0.2s' }}>{label}</span></div>
+                              <div style={{ display:'flex', alignItems:'center', gap:8 }}>{icon}<span style={{ fontSize:16, color:game.settings[role]>0?'var(--text-bright)':'var(--text-mid)', transition:'color 0.2s' }}>{label}</span></div>
                               {isHost?(<div className="stepper"><button onClick={()=>handleSettingsChange(role,-1)}>−</button><span>{game.settings[role]}</span><button onClick={()=>handleSettingsChange(role,1)}>+</button></div>):(<span className="font-mono-custom" style={{ fontSize:13, color:'var(--text-bright)', minWidth:20, textAlign:'right' }}>{game.settings[role]}</span>)}
                             </div>
-                            {hint&&<p style={{ fontFamily:'DM Mono', fontSize:9, color:'var(--text-dim)', letterSpacing:'0.05em', paddingLeft:23, lineHeight:1.4 }}>{hint}</p>}
+                            {hint&&<p style={{ fontFamily:'DM Mono', fontSize:12, color:'var(--text-mid)', letterSpacing:'0.03em', paddingLeft:26, lineHeight:1.5 }}>{hint}</p>}
                           </div>
                         ))}
                       </div>
@@ -937,15 +1116,15 @@ function Lobby({ game, isHost, user, onLeave }) {
               );
             })}
           </div>
-          <div style={{ height:1, background:'var(--noir-border)', margin:'16px 0' }}/>
+          <div style={{ height:1, background:'var(--noir-border)', margin:'18px 0' }}/>
           {isHost
-            ? <button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'13px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>
-            : <div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.1em', color:'var(--text-dim)', textTransform:'uppercase' }}>Awaiting host</span></div>
+            ? <button onClick={handleStartGame} className="btn-blood" style={{ width:'100%', padding:'15px 20px', borderRadius:10, animation:'startBtnPulse 2.5s ease-in-out infinite' }}>Begin the Night</button>
+            : <div style={{ textAlign:'center', padding:'12px 16px', background:'rgba(255,255,255,0.02)', borderRadius:10, border:'1px solid var(--noir-border)' }}><span style={{ fontFamily:'DM Mono', fontSize:13, letterSpacing:'0.08em', color:'var(--text-mid)', textTransform:'uppercase' }}>Awaiting host</span></div>
           }
         </div>
 
         {/* Lobby chat */}
-        <div className="glass-card" style={{ flex:'1 1 260px', minWidth:240, padding:0, overflow:'hidden', display:'flex', flexDirection:'column', minHeight:380, animation:'fadeUp 0.5s ease 0.3s both' }}>
+        <div className="glass-card" style={{ padding:0, overflow:'hidden', display:'flex', flexDirection:'column', minWidth:0, height:'100%', minHeight:600, animation:'fadeUp 0.5s ease 0.3s both' }}>
           <LobbyChatBox game={game} user={user} />
         </div>
 
@@ -1368,7 +1547,7 @@ function ChatBox({ game, me, user, isMafiaChat = false }) {
       <div style={{ padding:'12px 16px', borderBottom:`1px solid ${isMafiaChat?'rgba(192,20,28,0.2)':'var(--noir-border)'}`, display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
         {isMafiaChat
           ? <><Skull size={11} color="var(--blood)"/><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--blood)' }}>Famiglia — secret channel</span></>
-          : <><MessageSquare size={11} color="var(--text-dim)"/><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)' }}>Town Square{isNight?' — silent':''}</span></>
+          : <><MessageSquare size={14} color="var(--text-mid)"/><span style={{ fontFamily:'DM Mono', fontSize:10, letterSpacing:'0.15em', textTransform:'uppercase', color:'var(--text-dim)' }}>Town Square{isNight?' — silent':''}</span></>
         }
       </div>
 
